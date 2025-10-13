@@ -10,6 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DemoErrorsRouteImport } from './routes/demo/errors'
+import { Route as AuthRegisterRouteImport } from './routes/auth/Register'
+import { Route as AuthLoginRouteImport } from './routes/auth/Login'
+import { Route as UserHomeIndexRouteImport } from './routes/user/Home/index'
+import { Route as UserCheckoutIndexRouteImport } from './routes/user/Checkout/index'
+import { Route as UserCatalogIndexRouteImport } from './routes/user/Catalog/index'
+import { Route as UserCartIndexRouteImport } from './routes/user/Cart/index'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -21,6 +28,41 @@ import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ss
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoErrorsRoute = DemoErrorsRouteImport.update({
+  id: '/demo/errors',
+  path: '/demo/errors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/auth/Register',
+  path: '/auth/Register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/Login',
+  path: '/auth/Login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserHomeIndexRoute = UserHomeIndexRouteImport.update({
+  id: '/user/Home/',
+  path: '/user/Home/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserCheckoutIndexRoute = UserCheckoutIndexRouteImport.update({
+  id: '/user/Checkout/',
+  path: '/user/Checkout/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserCatalogIndexRoute = UserCatalogIndexRouteImport.update({
+  id: '/user/Catalog/',
+  path: '/user/Catalog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserCartIndexRoute = UserCartIndexRouteImport.update({
+  id: '/user/Cart/',
+  path: '/user/Cart/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
@@ -61,9 +103,16 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth/Login': typeof AuthLoginRoute
+  '/auth/Register': typeof AuthRegisterRoute
+  '/demo/errors': typeof DemoErrorsRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/user/Cart': typeof UserCartIndexRoute
+  '/user/Catalog': typeof UserCatalogIndexRoute
+  '/user/Checkout': typeof UserCheckoutIndexRoute
+  '/user/Home': typeof UserHomeIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -71,9 +120,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth/Login': typeof AuthLoginRoute
+  '/auth/Register': typeof AuthRegisterRoute
+  '/demo/errors': typeof DemoErrorsRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/user/Cart': typeof UserCartIndexRoute
+  '/user/Catalog': typeof UserCatalogIndexRoute
+  '/user/Checkout': typeof UserCheckoutIndexRoute
+  '/user/Home': typeof UserHomeIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -82,9 +138,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth/Login': typeof AuthLoginRoute
+  '/auth/Register': typeof AuthRegisterRoute
+  '/demo/errors': typeof DemoErrorsRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/user/Cart/': typeof UserCartIndexRoute
+  '/user/Catalog/': typeof UserCatalogIndexRoute
+  '/user/Checkout/': typeof UserCheckoutIndexRoute
+  '/user/Home/': typeof UserHomeIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -94,9 +157,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth/Login'
+    | '/auth/Register'
+    | '/demo/errors'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/user/Cart'
+    | '/user/Catalog'
+    | '/user/Checkout'
+    | '/user/Home'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -104,9 +174,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth/Login'
+    | '/auth/Register'
+    | '/demo/errors'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/user/Cart'
+    | '/user/Catalog'
+    | '/user/Checkout'
+    | '/user/Home'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -114,9 +191,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth/Login'
+    | '/auth/Register'
+    | '/demo/errors'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/user/Cart/'
+    | '/user/Catalog/'
+    | '/user/Checkout/'
+    | '/user/Home/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -125,9 +209,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  DemoErrorsRoute: typeof DemoErrorsRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
+  UserCartIndexRoute: typeof UserCartIndexRoute
+  UserCatalogIndexRoute: typeof UserCatalogIndexRoute
+  UserCheckoutIndexRoute: typeof UserCheckoutIndexRoute
+  UserHomeIndexRoute: typeof UserHomeIndexRoute
   DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute
   DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute
   DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute
@@ -141,6 +232,55 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/errors': {
+      id: '/demo/errors'
+      path: '/demo/errors'
+      fullPath: '/demo/errors'
+      preLoaderRoute: typeof DemoErrorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/Register': {
+      id: '/auth/Register'
+      path: '/auth/Register'
+      fullPath: '/auth/Register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/Login': {
+      id: '/auth/Login'
+      path: '/auth/Login'
+      fullPath: '/auth/Login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user/Home/': {
+      id: '/user/Home/'
+      path: '/user/Home'
+      fullPath: '/user/Home'
+      preLoaderRoute: typeof UserHomeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user/Checkout/': {
+      id: '/user/Checkout/'
+      path: '/user/Checkout'
+      fullPath: '/user/Checkout'
+      preLoaderRoute: typeof UserCheckoutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user/Catalog/': {
+      id: '/user/Catalog/'
+      path: '/user/Catalog'
+      fullPath: '/user/Catalog'
+      preLoaderRoute: typeof UserCatalogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user/Cart/': {
+      id: '/user/Cart/'
+      path: '/user/Cart'
+      fullPath: '/user/Cart'
+      preLoaderRoute: typeof UserCartIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -197,9 +337,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  DemoErrorsRoute: DemoErrorsRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
+  UserCartIndexRoute: UserCartIndexRoute,
+  UserCatalogIndexRoute: UserCatalogIndexRoute,
+  UserCheckoutIndexRoute: UserCheckoutIndexRoute,
+  UserHomeIndexRoute: UserHomeIndexRoute,
   DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
   DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
   DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,

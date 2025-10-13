@@ -1,1 +1,239 @@
-@import "tailwindcss";
+  @import "tailwindcss";
+  /* ===================================
+    TAILWIND CSS V4 CONFIGURATION
+    Using CSS Variables (No tailwind.config.js needed!)
+    
+    How it works:
+    1. Define CSS variables in :root (light mode)
+    2. Override in .dark selector (dark mode)
+    3. Use custom utility classes (.bg-primary, .text-foreground, etc)
+    4. Tailwind v4 automatically recognizes these patterns
+    =================================== */
+
+  /* ===================================
+    LIGHT MODE - Default Theme (:root)
+    =================================== */
+  :root {
+    /* Main colors */
+    --color-background: #ffffff;          /* White background */
+    --color-foreground: #0f172a;          /* Slate 900 - Dark text */
+    
+    /* Card colors */
+    --color-card: #ffffff;                /* Card background */
+    --color-card-foreground: #0f172a;     /* Card text */
+    
+    /* Primary brand color */
+    --color-primary: #eac12c;             
+    --color-primary-foreground: #ffffff;  
+
+    /* Secondary color */
+    --color-secondary: #cab007;           /* Slate 100 */
+    --color-secondary-foreground: #1e293b; /* Slate 800 */
+    
+    /* Muted/Subtle color */
+    --color-muted: #f1f5f9;               /* Slate 100 */
+    --color-muted-foreground: #64748b;    /* Slate 500 */
+    
+    /* Accent color khusus untuk teks yang background transparan */
+    --color-accent: #f1f5f9;              
+    --color-accent-foreground: #1e293b;   
+    
+    /* Destructive/Error color */
+    --color-destructive: #ef4444;         /* Red 500 */
+    --color-destructive-foreground: #ffffff; /* White text */
+    
+    /* Success color */
+    --color-success: #10b981;             /* Green 500 */
+    --color-success-foreground: #ffffff;  /* White text */
+    
+    /* Warning color */
+    --color-warning: #f59e0b;             /* Amber 500 */
+    --color-warning-foreground: #ffffff;  /* White text */
+    
+    /* Info color */
+    --color-info: #3b82f6;                /* Blue 500 */
+    --color-info-foreground: #ffffff;     /* White text */
+    
+    /* Border and input */
+    --color-border: #e2e8f0;              /* Slate 200 */
+    --color-input: #e2e8f0;               /* Slate 200 */
+    --color-ring: #3b82f6;                /* Blue 500 - focus ring */
+    
+    /* Border radius */
+    --radius-lg: 0.5rem;
+    --radius-md: calc(0.5rem - 2px);
+    --radius-sm: calc(0.5rem - 4px);
+  }
+
+  /* ===================================
+    DARK MODE - .dark class
+    =================================== */
+  .dark {
+    /* Main colors */
+    --color-background: #0f172a;          /* Slate 900 - Dark background */
+    --color-foreground: #f8fafc;          /* Slate 50 - Light text */
+    
+    /* Card colors */
+    --color-card: #1e293b;                /* Slate 800 - Lighter than bg */
+    --color-card-foreground: #f8fafc;     /* Slate 50 - Light text */
+    
+    /* Primary brand color */
+    --color-primary: #FAD643;             
+    --color-primary-foreground: #463f18;  
+    
+    /* Secondary color */
+    --color-secondary: #ebd50d;           /* Slate 700 */
+    --color-secondary-foreground: #f8fafc; /* Slate 50 */
+    
+    /* Muted/Subtle color */
+    --color-muted: #334155;               /* Slate 700 */
+    --color-muted-foreground: #94a3b8;    /* Slate 400 */
+    
+    /* Accent color khusus untuk teks yang background transparan */
+    --color-accent: #dcdcdd;              
+    --color-accent-foreground: #1e293b;   
+    
+    /* Destructive/Error color */
+    --color-destructive: #7f1d1d;         /* Red 900 - Darker red */
+    --color-destructive-foreground: #fecaca; /* Red 200 - Light red text */
+    
+    /* Success color */
+    --color-success: #064e3b;             /* Emerald 900 */
+    --color-success-foreground: #a7f3d0;  /* Emerald 200 */
+    
+    /* Warning color */
+    --color-warning: #78350f;             /* Amber 900 */
+    --color-warning-foreground: #fde68a;  /* Amber 200 */
+    
+    /* Info color */
+    --color-info: #1e3a8a;                /* Blue 900 */
+    --color-info-foreground: #bfdbfe;     /* Blue 200 */
+    
+    /* Border and input */
+    --color-border: #334155;              /* Slate 700 */
+    --color-input: #334155;               /* Slate 700 */
+    --color-ring: #60a5fa;                /* Blue 400 - focus ring */
+  }
+
+  /* ===================================
+    GLOBAL STYLES
+    =================================== */
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===================================
+    CUSTOM UTILITY CLASSES
+    Background Colors
+    =================================== */
+
+  .bg-background { background-color: var(--color-background) !important; }
+  .bg-foreground { background-color: var(--color-foreground) !important; }
+  .bg-card { background-color: var(--color-card) !important; }
+  .bg-primary { background-color: var(--color-primary) !important; }
+  .bg-secondary { background-color: var(--color-secondary) !important; }
+  .bg-muted { background-color: var(--color-muted) !important; }
+  .bg-accent { background-color: var(--color-accent) !important; }
+  .bg-destructive { background-color: var(--color-destructive) !important; }
+  .bg-success { background-color: var(--color-success) !important; }
+  .bg-warning { background-color: var(--color-warning) !important; }
+  .bg-info { background-color: var(--color-info) !important; }
+
+  /* Text Colors */
+  .text-background { color: var(--color-background) !important; }
+  .text-foreground { color: var(--color-foreground) !important; }
+  .text-card-foreground { color: var(--color-card-foreground) !important; }
+  .text-primary { color: var(--color-primary) !important; }
+  .text-primary-foreground { color: var(--color-primary-foreground) !important; }
+  .text-secondary { color: var(--color-secondary) !important; }
+  .text-secondary-foreground { color: var(--color-secondary-foreground) !important; }
+  .text-muted { color: var(--color-muted) !important; }
+  .text-muted-foreground { color: var(--color-muted-foreground) !important; }
+  .text-accent { color: var(--color-accent) !important; }
+  .text-accent-foreground { color: var(--color-accent-foreground) !important; }
+  .text-destructive { color: var(--color-destructive) !important; }
+  .text-destructive-foreground { color: var(--color-destructive-foreground) !important; }
+  .text-success { color: var(--color-success) !important; }
+  .text-success-foreground { color: var(--color-success-foreground) !important; }
+  .text-warning { color: var(--color-warning) !important; }
+  .text-warning-foreground { color: var(--color-warning-foreground) !important; }
+  .text-info { color: var(--color-info) !important; }
+  .text-info-foreground { color: var(--color-info-foreground) !important; }
+
+  /* Border Colors */
+  .border-border { border-color: var(--color-border) !important; }
+  .border-input { border-color: var(--color-input) !important; }
+  .border-primary { border-color: var(--color-primary) !important; }
+  .border-secondary { border-color: var(--color-secondary) !important; }
+  .border-destructive { border-color: var(--color-destructive) !important; }
+  .border-success { border-color: var(--color-success) !important; }
+  .border-warning { border-color: var(--color-warning) !important; }
+
+  /* Ring/Focus Colors */
+  .ring-ring { box-shadow: 0 0 0 3px var(--color-ring) !important; }
+  .ring-primary { box-shadow: 0 0 0 3px var(--color-primary) !important; }
+
+  /* Hover States */
+  .hover\:bg-accent:hover { background-color: var(--color-accent) !important; }
+  .hover\:bg-primary:hover { background-color: var(--color-primary) !important; }
+  .hover\:bg-primary\/90:hover { 
+    background-color: var(--color-primary); 
+    opacity: 0.9; 
+  }
+  .hover\:bg-secondary:hover { background-color: var(--color-secondary) !important; }
+  .hover\:bg-destructive:hover { background-color: var(--color-destructive) !important; }
+  .hover\:text-accent-foreground:hover { color: var(--color-accent-foreground) !important; }
+  .hover\:text-primary:hover { color: var(--color-primary) !important; }
+
+  /* Border Radius Utilities */
+  .rounded-lg { border-radius: var(--radius-lg) !important; }
+  .rounded-md { border-radius: var(--radius-md) !important; }
+  .rounded-sm { border-radius: var(--radius-sm) !important; }
+
+  /* ===================================
+    ACCESSIBILITY
+    =================================== */
+
+  /* Screen reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Focus visible for accessibility */
+  .focus-visible\:ring-2:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--color-ring);
+  }
+
+  /* ===================================
+    SMOOTH TRANSITIONS
+    =================================== */
+
+  .transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  .transition-theme {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
