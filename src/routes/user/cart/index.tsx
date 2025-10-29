@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Gift, X } from 'lucide-react'
 // import { SuccessAlert } from '@/components/ui/SuccesAlert'
 
-export const Route = createFileRoute('/user/Cart/')({
+export const Route = createFileRoute('/user/cart/')({
   component: RouteComponent,
 })
 
@@ -170,7 +170,6 @@ function RouteComponent() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar onMenuClick={handleMenuClick} />
-      
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header - Modern Design */}
         <div className="mb-8 relative">
@@ -197,7 +196,7 @@ function RouteComponent() {
 
         {cartItems.length === 0 ? (
           // Empty Cart
-          <div className="text-center py-16">
+          (<div className="text-center py-16">
             <ShoppingBag size={64} className="mx-auto text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold text-foreground mb-2">Keranjang Kosong</h2>
             <p className="text-muted-foreground mb-6">Yuk, mulai belanja koleksi hijab terbaik kami!</p>
@@ -206,10 +205,10 @@ function RouteComponent() {
             >
               Mulai Belanja
             </Button>
-          </div>
+          </div>)
         ) : (
           // Cart with Items
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          (<div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Left Side - Cart Items (3/4 width) */}
             <div className="lg:col-span-3 space-y-4">
               {/* Select All Header */}
@@ -339,7 +338,6 @@ function RouteComponent() {
                 )
               })}
             </div>
-
             {/* Right Side - Windows */}
             <div className="lg:col-span-1">
               {/* Desktop Summary */}
@@ -435,7 +433,7 @@ function RouteComponent() {
                 </div>
               </div>
             </div>
-          </div>
+          </div>)
         )}
 
         {/* Floating Toggle Button for Mobile */}

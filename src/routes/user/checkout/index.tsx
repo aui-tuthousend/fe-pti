@@ -17,7 +17,7 @@ import {
   ChevronUp
 } from 'lucide-react'
 
-export const Route = createFileRoute('/user/Checkout/')({
+export const Route = createFileRoute('/user/checkout/')({
   component: RouteComponent,
 })
 

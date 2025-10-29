@@ -18,7 +18,7 @@ import {
   Package
 } from 'lucide-react'
 
-export const Route = createFileRoute('/user/Catalog/')({
+export const Route = createFileRoute('/user/catalog/')({
   component: RouteComponent,
 })
 

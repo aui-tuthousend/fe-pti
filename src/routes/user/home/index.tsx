@@ -4,7 +4,7 @@ import { Navbar } from '../component/Navbar'
 import { Button } from '@/components/ui/button'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
 
-export const Route = createFileRoute('/user/Home/')({
+export const Route = createFileRoute('/user/home/')({
   component: RouteComponent,
 })
 

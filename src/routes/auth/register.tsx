@@ -3,22 +3,28 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
+import { useCreateUser } from '@/features/user/hooks'
+import { toast } from 'sonner'
+import { useNavigate } from '@tanstack/react-router'
+import { RegisterUserRequest } from '@/features/user/types'
 
-export const Route = createFileRoute('/auth/Register')({
+export const Route = createFileRoute('/auth/register')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const navigate = useNavigate()
+  const createUserMutation = useCreateUser()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
+  const [formData, setFormData] = useState<RegisterUserRequest>({
+    username: '',
     password: '',
-    confirmPassword: ''
+    name: '',
+    // role: 'user',
   })
   const [isLoading, setIsLoading] = useState(false)
+  
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -31,12 +37,15 @@ function RouteComponent() {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await createUserMutation.mutateAsync({...formData, name: formData.username})
+      toast.success('Driver registered successfully!')
       setIsLoading(false)
-      // Handle successful registration logic here
-      console.log('Register:', formData)
-    }, 2000)
+      navigate({ to: '/auth/login' })
+    } catch (error) {
+      setIsLoading(false)
+      toast.error('Failed to register driver. Please try again.')
+    }
   }
 
   return (
@@ -82,8 +91,8 @@ function RouteComponent() {
                 <input
                   id="fullName"
                   type="text"
-                  value={formData.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  value={formData.  username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
                   className="w-full bg-background border border-primary rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   placeholder="Masukkan nama lengkap Anda"
                   required
@@ -92,7 +101,7 @@ function RouteComponent() {
             </div>
 
             {/* Email Field */}
-            <div className="space-y-1">
+            {/* <div className="space-y-1">
               <label htmlFor="email" className="text-sm font-medium text-accent">
                 Email
               </label>
@@ -108,10 +117,10 @@ function RouteComponent() {
                   required
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Phone Field */}
-            <div className="space-y-1">
+            {/* <div className="space-y-1">
               <label htmlFor="phone" className="text-sm font-medium text-accent">
                 Nomor Telepon
               </label>
@@ -127,7 +136,7 @@ function RouteComponent() {
                   required
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Password Field */}
             <div className="space-y-1">
@@ -156,7 +165,7 @@ function RouteComponent() {
             </div>
 
             {/* Confirm Password Field */}
-            <div className="space-y-1">
+            {/* <div className="space-y-1">
               <label htmlFor="confirmPassword" className="text-sm font-medium text-accent">
                 Konfirmasi Password
               </label>
@@ -165,8 +174,8 @@ function RouteComponent() {
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
                   className="w-full bg-background border border-primary rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   placeholder="Konfirmasi password"
                   required
@@ -179,7 +188,7 @@ function RouteComponent() {
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-2">
@@ -204,16 +213,11 @@ function RouteComponent() {
               disabled={isLoading}
               className="w-full bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground font-semibold py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:shadow-lg"
             >
-              {isLoading ? (
-                <>
-                  <LoadingSpinner className="text-primary-foreground" />
-                  Mendaftar...
-                </>
-              ) : (
-                <>
+              
+                
                   Daftar Sekarang
-                </>
-              )}
+                
+              
             </Button>
 
             {/* Login Link */}
@@ -221,7 +225,7 @@ function RouteComponent() {
               <p className="text-accent">
                 Sudah punya akun?{' '}
                 <Link
-                  to="/auth/Login"
+                  to="/auth/login"
                   className="text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   Masuk di sini

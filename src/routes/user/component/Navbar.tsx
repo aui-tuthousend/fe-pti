@@ -15,11 +15,8 @@ import {
   UserCircle
 } from 'lucide-react'
 
-interface NavbarProps {
-  onMenuClick: () => void
-}
 
-export function Navbar({ onMenuClick }: NavbarProps) {
+export function Navbar() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
@@ -49,7 +46,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   const handleLogin = () => {
     setIsDropdownOpen(false)
-    navigate({ to: '/auth/Login' })
+    navigate({ to: '/auth/login' })
   }
 
   const handleLogout = () => {
@@ -255,7 +252,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
-                            navigate({ to: '/auth/Register' })
+                            navigate({ to: '/auth/register' })
                           }}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
                         >

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 
-export const Route = createFileRoute('/auth/Login')({
+export const Route = createFileRoute('/auth/login')({
   component: RouteComponent,
 })
 
