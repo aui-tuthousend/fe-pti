@@ -1,45 +1,188 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { productService } from './service';
-import { ProductRequest } from './types';
+import { create } from 'zustand';
+import { fetchServer } from '@/lib/fetchServer';
+import { urlBuilder } from "@/lib/utils";
+import type { ProductResponse, ProductRequest, PaginatedProductsResponse } from "./types";
 
-export const productKeys = {
-    all: ['product'] as const,
-    lists: () => [...productKeys.all, 'list'] as const,
-    infinite: () => [...productKeys.all, 'infinite'] as const,
+interface ProductStore {
+  list: ProductResponse[];
+  default: ProductResponse;
+  model: ProductResponse | ProductRequest;
+  loading: boolean;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  tableAttributes: Array<{
+    accessorKey: string;
+    header: string;
+  }>;
+
+  setModel: (model?: ProductResponse | ProductRequest) => void;
+  CreateProduct: (token: string, payload: ProductRequest) => Promise<any>;
+  GetListProduct: (token: string) => Promise<any>;
+  GetPaginatedProducts: (token: string, page?: number, limit?: number) => Promise<any>;
 }
 
+export const useProductStore = create<ProductStore>((set, get) => ({
+  list: [],
+  default: {
+    uuid: "",
+    title: "",
+    description: "",
+    product_type: "",
+    vendor: "",
+    tags: [],
+    status: "",
+    published_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+    variants: []
+  },
+  model: {
+    uuid: "",
+    title: "",
+    description: "",
+    product_type: "",
+    vendor: "",
+    tags: [],
+    status: "",
+    published_at: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+    variants: []
+  },
+  loading: false,
+  pagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  },
+  tableAttributes: [
+    {
+      accessorKey: "uuid",
+      header: "UUID",
+    },
+    {
+      accessorKey: "title",
+      header: "Title",
+    },
+    {
+      accessorKey: "product_type",
+      header: "Type",
+    },
+    {
+      accessorKey: "vendor",
+      header: "Vendor",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+    },
+  ],
+
+  setModel(model) {
+    const currentModel = get().model;
+    const newModel = model || get().default;
+    if (JSON.stringify(currentModel) !== JSON.stringify(newModel)) {
+      set({ model: newModel });
+    }
+  },
+
+  CreateProduct: async (token, payload) => {
+    set({ loading: true });
+    try {
+      const response = await fetchServer(token, urlBuilder('/product'), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  GetListProduct: async (token) => {
+    try {
+      set({ loading: true });
+      const response = await fetchServer(token, urlBuilder('/product'), {
+        method: 'GET',
+      });
+
+      const data = response.data;
+      console.log(data);
+
+      set({ list: data?.data || [] });
+      return data;
+    } catch (error) {
+      console.error('Error getting list of products:', error);
+      return error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  GetPaginatedProducts: async (token, page = 1, limit = 10) => {
+    try {
+      set({ loading: true });
+      const response = await fetchServer(token, `${urlBuilder('/product')}?page=${page}&limit=${limit}`, {
+        method: 'GET',
+      });
+
+      const data = response.data;
+      console.log("Paginated products response:", data);
+
+      set({
+        list: data?.data || [],
+        pagination: data?.pagination || get().pagination
+      });
+      return data;
+    } catch (error) {
+      console.error('Error getting paginated products:', error);
+      return error;
+    } finally {
+      set({ loading: false });
+    }
+  }
+}));
+
+// Legacy hooks for backward compatibility
 export function useGetAllProduct() {
-  return useQuery({
-      queryKey: productKeys.lists(),
-      queryFn: () => productService.getAllProduct(),
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-  });
+  const { list, loading, GetListProduct } = useProductStore();
+
+  return {
+    data: list,
+    isLoading: loading,
+    refetch: () => GetListProduct(localStorage.getItem('auth_token') || ''),
+  };
 }
 
 export function useCreateProduct() {
-  const queryClient = useQueryClient();
+  const { CreateProduct, loading } = useProductStore();
 
-  return useMutation({
-    mutationFn: (productData: ProductRequest) => productService.createProduct(productData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-    },
-  });
+  return {
+    mutateAsync: (productData: ProductRequest) => CreateProduct(localStorage.getItem('auth_token') || '', productData),
+    isPending: loading,
+  };
 }
 
 export function useGetInfiniteProducts(limit: number = 10) {
-  return useInfiniteQuery({
-    queryKey: productKeys.infinite(),
-    queryFn: ({ pageParam = 1 }) => productService.getPaginatedProducts(pageParam, limit),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
-        return lastPage.pagination.page + 1;
-      }
-      return undefined;
+  const { list, loading, pagination, GetPaginatedProducts } = useProductStore();
+
+  return {
+    data: {
+      pages: [{ data: list, pagination }],
+      pageParams: [1],
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+    isLoading: loading,
+    fetchNextPage: ({ pageParam = pagination.page + 1 }) =>
+      GetPaginatedProducts(localStorage.getItem('auth_token') || '', pageParam, limit),
+    hasNextPage: pagination.page < pagination.totalPages,
+  };
 }

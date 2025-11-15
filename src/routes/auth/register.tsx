@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
-import { useRegisterForm } from '@/features/user/hooks'
+import { useUserStore } from '@/features/user/hooks'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/auth/register')({
@@ -10,28 +11,55 @@ export const Route = createFileRoute('/auth/register')({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const {
-    formData,
-    errors,
-    isLoading,
-    showPassword,
-    showConfirmPassword,
-    updateField,
-    setShowPassword,
-    setShowConfirmPassword,
-    register
-  } = useRegisterForm()
+  const { RegisterUser, loading } = useUserStore()
+
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    name: '',
+    email: '',
+    phone: '',
+  })
+
+  const [errors, setErrors] = useState({
+    username: '',
+    password: '',
+    name: '',
+    email: '',
+    phone: '',
+  })
+
+  const [showPassword, setShowPassword] = useState(false)
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors = { username: '', password: '', name: '', email: '', phone: '' }
+    if (!formData.username.trim()) newErrors.username = 'Nama lengkap wajib diisi'
+    if (!formData.email.trim()) newErrors.email = 'Email wajib diisi'
+    if (!formData.phone.trim()) newErrors.phone = 'Nomor telepon wajib diisi'
+    if (!formData.password) newErrors.password = 'Password wajib diisi'
+    else if (formData.password.length < 6) newErrors.password = 'Password minimal 6 karakter'
+    setErrors(newErrors)
+    return !newErrors.username && !newErrors.email && !newErrors.phone && !newErrors.password
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const result = await register()
+    if (!validateForm()) return
 
-    if (result.success) {
+    try {
+      await RegisterUser('', formData)
       toast.success('Pendaftaran berhasil!')
       navigate({ to: '/auth/login' })
-    } else {
-      toast.error(result.error || 'Pendaftaran gagal')
+    } catch (error: any) {
+      toast.error(error?.message || 'Pendaftaran gagal')
     }
   }
 
@@ -217,14 +245,10 @@ function RouteComponent() {
             {/* Register Button */}
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground font-semibold py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:shadow-lg"
             >
-              
-                
-                  Daftar Sekarang
-                
-              
+              {loading ? 'Mendaftarkan...' : 'Daftar Sekarang'}
             </Button>
 
             {/* Login Link */}

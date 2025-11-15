@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Navbar } from '../component/navbar'
+import { Navbar } from '../../components/navbar'
 import { Button } from '@/components/ui/button'
 import { 
   MapPin, 
@@ -17,7 +17,7 @@ import {
   ChevronUp
 } from 'lucide-react'
 
-export const Route = createFileRoute('/user/checkout/')({
+export const Route = createFileRoute('/checkout/')({
   component: RouteComponent,
 })
 
@@ -119,7 +119,7 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onMenuClick={handleMenuClick} />
+      <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}

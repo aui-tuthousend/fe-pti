@@ -1,18 +1,32 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Navbar } from '../component/navbar'
+import { Navbar } from '../components/navbar'
 import { Button } from '@/components/ui/button'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
+import { UserResponse } from '../features/user/types'
 
-export const Route = createFileRoute('/user/home/')({
-  component: RouteComponent,
+interface HomeProps {
+  user?: UserResponse
+  isLoadingUser?: boolean
+}
+
+export const Route = createFileRoute('/_home')({
+  component: () => <HomeComponent />,
 })
 
-function RouteComponent() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
-  const handleMenuClick = () => {
-    setIsSidebarOpen(!isSidebarOpen)
+// Export the component for use in other routes
+export function HomeComponent({ user, isLoadingUser }: HomeProps = {}) {
+  // Debug logging for logged in user
+  if (user) {
+    console.log('🔐 User is logged in:', {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      timestamp: new Date().toISOString()
+    });
+  } else if (!isLoadingUser) {
+    console.log('👤 User is not logged in (not loading)');
   }
 
   // Data model hijab
@@ -85,12 +99,26 @@ function RouteComponent() {
     }
   ]
 
+  // Personalized greeting based on user status
+  const getGreeting = () => {
+    if (isLoadingUser) return "Loading..."
+    if (user) return `Welcome back, ${user.name}!`
+    return "The Art of Elegance"
+  }
+
+  const getSubtitle = () => {
+    if (user) {
+      return "Discover personalized hijab recommendations curated just for you"
+    }
+    return "Koleksi hijab premium dengan desain modern, bahan berkualitas tinggi, dan harga terjangkau untuk melengkapi gaya Anda sehari-hari."
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onMenuClick={handleMenuClick} />
-      
+      <Navbar />
+
       {/* Hero Section with Background Image */}
-      <section 
+      <section
         className="relative h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3)), url('/user/bghome.jpg')`
@@ -99,14 +127,25 @@ function RouteComponent() {
         <div className="container mx-auto px-4 flex items-center h-full">
           <div className="text-left text-white max-w-2xl ml-8 md:ml-16">
             <h1 className="text-5xl md:text-7xl font-bold mb-6" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
-              The Art of <span className="text-primary">Elegance</span>
+              {user ? (
+                <>
+                  Welcome back, <span className="text-primary">{user.name}</span>!
+                </>
+              ) : (
+                <>
+                  The Art of <span className="text-primary">Elegance</span>
+                </>
+              )}
             </h1>
+            <p className="text-xl mb-8">
+              {getSubtitle()}
+            </p>
             <div className="flex justify-start ml-4 mt-8">
-              <Button 
+              <Button
                 size="lg"
-            className="bg-secondary hover:bg-primary/30 text-primary-foreground px-10 py-4 text-lg font-bold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border-2 border-primary hover:border-primary/80"
+                className="bg-secondary hover:bg-primary/30 text-primary-foreground px-10 py-4 text-lg font-bold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border-2 border-primary hover:border-primary/80"
               >
-                Jelajahi Koleksi
+                {user ? 'Explore Your Collection' : 'Jelajahi Koleksi'}
               </Button>
             </div>
           </div>
@@ -118,11 +157,19 @@ function RouteComponent() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-primary mb-4">
-              Model Hijab Terpopuler
+              {user ? 'Recommended for You' : 'Model Hijab Terpopuler'}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Pilihan hijab berkualitas tinggi dengan desain modern dan elegan yang cocok untuk berbagai acara
+              {user
+                ? 'Personalized hijab recommendations based on your preferences and style'
+                : 'Pilihan hijab berkualitas tinggi dengan desain modern dan elegan yang cocok untuk berbagai acara'
+              }
             </p>
+            {user && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                Based on your profile: <span className="text-primary font-medium">{user.username}</span>
+              </div>
+            )}
           </div>
 
           {/* Products Grid */}

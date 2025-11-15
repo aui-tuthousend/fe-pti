@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Navbar } from '../component/navbar'
+// import { Navbar } from '../../components/navbar'
 import { Button } from '@/components/ui/button'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Gift, X } from 'lucide-react'
+import { Navbar } from '@/components/navbar'
 // import { SuccessAlert } from '@/components/ui/SuccesAlert'
 
-export const Route = createFileRoute('/user/cart/')({
+export const Route = createFileRoute('/cart/')({
   component: RouteComponent,
 })
 
@@ -169,7 +170,7 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onMenuClick={handleMenuClick} />
+      <Navbar/>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header - Modern Design */}
         <div className="mb-8 relative">
@@ -411,8 +412,8 @@ function RouteComponent() {
                 </div>
 
                 {/* Checkout Button - Perbaikan ukuran dan ikon */}
-                <Link 
-                  to="/user/Checkout"
+                <Link
+                  to="/checkout/"
                   className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
                 >
                   <Button 
@@ -529,8 +530,8 @@ function RouteComponent() {
                 </div>
 
                 {/* Checkout Button - Mobile */}
-                <Link 
-                  to="/user/Checkout"
+                <Link
+                  to="/checkout"
                   className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
                 >
                   <Button 

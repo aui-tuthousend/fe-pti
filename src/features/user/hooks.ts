@@ -1,261 +1,209 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { UserService } from './service';
-import { UserResponse, RegisterUserRequest, LoginUserRequest, LoginUserResponse } from './types';
+import { create } from 'zustand';
+import { useState, useEffect } from 'react';
+import { useCookies } from 'react-cookie';
+import { fetchServer } from '@/lib/fetchServer';
+import { urlBuilder } from "@/lib/utils";
+import type { UserResponse, RegisterUserRequest, LoginUserRequest, LoginUserResponse } from "./types";
 
-export const userKeys = {
-    all: ['user'] as const,
-    lists: () => [...userKeys.all, 'list'] as const,
-    current: () => [...userKeys.all, 'current'] as const,
+interface UserStore {
+  list: UserResponse[];
+  default: UserResponse;
+  model: UserResponse | RegisterUserRequest;
+  loading: boolean;
+  tableAttributes: Array<{
+    accessorKey: string;
+    header: string;
+  }>;
+
+  setModel: (model?: UserResponse | RegisterUserRequest) => void;
+  RegisterUser: (token: string, payload: RegisterUserRequest) => Promise<any>;
+  GetListUser: (token: string) => Promise<any>;
+  // LoginUser: (payload: LoginUserRequest) => Promise<any>;
+  // GetCurrentUser: (token: string) => Promise<any>;
 }
 
+export const useUserStore = create<UserStore>((set, get) => ({
+  list: [],
+  default: { id: 0, username: "", name: "", role: "" },
+  model: { id: 0, username: "", name: "", role: "" },
+  loading: false,
+  tableAttributes: [
+    {
+      accessorKey: "id",
+      header: "ID",
+    },
+    {
+      accessorKey: "username",
+      header: "Username",
+    },
+    {
+      accessorKey: "name",
+      header: "Nama",
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+    },
+  ],
+
+  setModel(model) {
+    const currentModel = get().model;
+    const newModel = model || get().default;
+    if (JSON.stringify(currentModel) !== JSON.stringify(newModel)) {
+      set({ model: newModel });
+    }
+  },
+
+  RegisterUser: async (token, payload) => {
+    set({ loading: true });
+    try {
+      const response = await fetchServer(token, urlBuilder('/users'), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error registering user:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  GetListUser: async (token) => {
+    try {
+      set({ loading: true });
+      const response = await fetchServer(token, urlBuilder('/users'), {
+        method: 'GET',
+      });
+
+      const data = response.data;
+      console.log(data);
+
+      set({ list: data?.data || [] });
+      return data;
+    } catch (error) {
+      console.error('Error getting list of users:', error);
+      return error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // LoginUser: async (payload) => {
+  //   set({ loading: true });
+  //   try {
+  //     const response = await fetchServer('', urlBuilder('/users/login'), {
+  //       method: 'POST',
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     const data = response.data;
+  //     console.log("Login response:", data);
+
+  //     // Store token if login successful
+  //     if (data.token) {
+  //       localStorage.setItem('auth_token', data.token);
+  //     }
+
+  //     return data;
+  //   } catch (error) {
+  //     console.error('Error logging in:', error);
+  //     return error;
+  //   } finally {
+  //     set({ loading: false });
+  //   }
+  // },
+
+  // GetCurrentUser: async (token) => {
+  //   try {
+  //     set({ loading: true });
+  //     const response = await fetchServer(token, urlBuilder('/users/'), {
+  //       method: 'GET',
+  //     });
+
+  //     const data = response.data;
+  //     console.log("GetCurrentUser response:", data);
+
+  //     set({ model: data.data || data });
+  //     return data;
+  //   } catch (error: any) {
+  //     console.error('Error getting current user:', error);
+  //     // Clear token if unauthorized
+  //     if (error?.message?.includes('401')) {
+  //       // Note: This should be updated to clear cookies instead of localStorage
+  //       // when the auth system is fully migrated
+  //     }
+  //     return error;
+  //   } finally {
+  //     set({ loading: false });
+  //   }
+  // }
+}));
+
+// Legacy hooks for backward compatibility
 export function useGetAllUser() {
-  return useQuery({
-      queryKey: userKeys.lists(),
-      queryFn: () => UserService.getAllUser(),
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-  });
+  const [cookies] = useCookies(['authToken']);
+  const { list, loading, GetListUser } = useUserStore();
+
+  return {
+    data: list,
+    isLoading: loading,
+    refetch: () => GetListUser(cookies.authToken || ''),
+  };
 }
 
 export function useCreateUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (userData: RegisterUserRequest) => UserService.createUser(userData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-    },
-  });
-}
-
-// Login hook
-export function useLoginUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation<LoginUserResponse, Error, LoginUserRequest>({
-    mutationFn: (loginData: LoginUserRequest) => UserService.loginUser(loginData),
-    onSuccess: (data: LoginUserResponse) => {
-      // Store token in localStorage
-      if (data.token) {
-        localStorage.setItem('auth_token', data.token);
-      }
-      // Invalidate current user query to refetch
-      queryClient.invalidateQueries({ queryKey: userKeys.current() });
-    },
-  });
-}
-
-// Get current user hook
-export function useGetCurrentUser() {
-  return useQuery({
-    queryKey: userKeys.current(),
-    queryFn: () => UserService.getCurrentUser(),
-    enabled: !!localStorage.getItem('auth_token'), // Only run if token exists
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
-
-// Logout function
-export function useLogout() {
-  const queryClient = useQueryClient();
-
-  return () => {
-    localStorage.removeItem('auth_token');
-    queryClient.clear(); // Clear all cached data
-  };
-}
-
-// Registration form hook - encapsulates all form logic
-export function useRegisterForm() {
-  const createUserMutation = useCreateUser();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [formData, setFormData] = useState<RegisterUserRequest>({
-    username: '',
-    password: '',
-    name: '',
-    email: '',
-    phone: '',
-  });
-
-  const [errors, setErrors] = useState<Partial<RegisterUserRequest>>({});
-
-  const updateField = (field: keyof RegisterUserRequest, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: undefined
-      }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<RegisterUserRequest> = {};
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Nama lengkap wajib diisi';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email wajib diisi';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Format email tidak valid';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Nomor telepon wajib diisi';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password wajib diisi';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password minimal 6 karakter';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const register = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!validateForm()) {
-      return { success: false, error: 'Mohon lengkapi semua field dengan benar' };
-    }
-
-    setIsLoading(true);
-
-    try {
-      await createUserMutation.mutateAsync(formData);
-
-      setIsLoading(false);
-      return { success: true };
-    } catch (error: any) {
-      setIsLoading(false);
-      const errorMessage = error?.message || 'Terjadi kesalahan saat mendaftar';
-      return { success: false, error: errorMessage };
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      username: '',
-      password: '',
-      name: '',
-      email: '',
-      phone: '',
-    });
-    setErrors({});
-    setIsLoading(false);
-  };
+  const [cookies] = useCookies(['authToken']);
+  const { RegisterUser, loading } = useUserStore();
 
   return {
-    // Form state
-    formData,
-    errors,
-    isLoading,
-    showPassword,
-    showConfirmPassword,
-
-    // Actions
-    updateField,
-    setShowPassword,
-    setShowConfirmPassword,
-    register,
-    resetForm,
-    validateForm,
+    mutateAsync: (userData: RegisterUserRequest) => RegisterUser(cookies.authToken || '', userData),
+    isPending: loading,
   };
 }
 
-// Login form hook
-export function useLoginForm() {
-  const loginMutation = useLoginUser();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+// Login functionality moved to auth feature
 
-  const [formData, setFormData] = useState<LoginUserRequest>({
-    email: '',
-    password: '',
-  });
+// export function useGetCurrentUser() {
+//   const [, , removeCookie] = useCookies(['authToken', 'userData']);
+//   const { model, loading } = useUserStore();
 
-  const [errors, setErrors] = useState<Partial<LoginUserRequest>>({});
+//   // Try to get user data from cookies first
+//   const getUserFromCookies = () => {
+//     try {
+//       const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+//         const [key, value] = cookie.trim().split('=');
+//         acc[key] = decodeURIComponent(value);
+//         return acc;
+//       }, {} as Record<string, string>);
 
-  const updateField = (field: keyof LoginUserRequest, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+//       const userData = cookies['userData'];
+//       if (userData) {
+//         const parsedUser = JSON.parse(userData);
+//         // Update the store with cookie data
+//         useUserStore.setState({ model: parsedUser });
+//         return parsedUser;
+//       }
+//     } catch (error) {
+//       console.error('Error parsing user data from cookies:', error);
+//     }
+//     return null;
+//   };
 
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: undefined
-      }));
-    }
-  };
+//   // Get user data from cookies on mount
+//   useEffect(() => {
+//     getUserFromCookies();
+//   }, []);
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<LoginUserRequest> = {};
+//   return {
+//     data: model,
+//     isLoading: loading,
+//     refetch: getUserFromCookies,
+//   };
+// }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email wajib diisi';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Format email tidak valid';
-    }
+// Logout functionality moved to auth feature
 
-    if (!formData.password) {
-      newErrors.password = 'Password wajib diisi';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const login = async (): Promise<{ success: boolean; error?: string; data?: LoginUserResponse }> => {
-    if (!validateForm()) {
-      return { success: false, error: 'Mohon lengkapi semua field dengan benar' };
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await loginMutation.mutateAsync(formData);
-
-      setIsLoading(false);
-      return { success: true, data: result };
-    } catch (error: any) {
-      setIsLoading(false);
-      const errorMessage = error?.message || 'Email atau password salah';
-      return { success: false, error: errorMessage };
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      email: '',
-      password: '',
-    });
-    setErrors({});
-    setIsLoading(false);
-  };
-
-  return {
-    formData,
-    errors,
-    isLoading,
-    showPassword,
-    updateField,
-    setShowPassword,
-    login,
-    resetForm,
-    validateForm,
-  };
-}
+// Form logic moved to page components - features only handle data fetching

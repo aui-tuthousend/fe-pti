@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { useLoginForm } from '@/features/user/hooks'
+import { useAuthStore } from '@/features/auth/hook'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/auth/login')({
@@ -11,26 +12,43 @@ export const Route = createFileRoute('/auth/login')({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const {
-    formData,
-    errors,
-    isLoading,
-    showPassword,
-    updateField,
-    setShowPassword,
-    login
-  } = useLoginForm()
+  const { login, loading } = useAuthStore()
+  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [errors, setErrors] = useState({ email: '', password: '' })
+  const [showPassword, setShowPassword] = useState(false)
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors = { email: '', password: '' }
+    if (!formData.email) newErrors.email = 'Email wajib diisi'
+    if (!formData.password) newErrors.password = 'Password wajib diisi'
+    setErrors(newErrors)
+    return !newErrors.email && !newErrors.password
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const result = await login()
-
-    if (result.success) {
-      toast.success('Login berhasil!')
-      navigate({ to: '/user/home' })
-    } else {
-      toast.error(result.error || 'Login gagal')
+    if (!validateForm()) return
+    try {
+      console.log("jancok jancok")
+      const result = await login(formData)
+      console.log(result.token)
+      if (result.token) {
+        console.log("jancok")
+        toast.success('Login berhasil!')
+        await navigate({ to: '/' })
+      } else {
+        toast.error(result.errors)
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Login gagal')
     }
   }
 
@@ -152,10 +170,10 @@ function RouteComponent() {
             {/* Login Button */}
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground font-semibold py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:shadow-lg"
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <LoadingSpinner className="text-primary-foreground" />
                   OTW masuk...

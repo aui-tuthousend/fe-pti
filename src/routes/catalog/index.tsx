@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Navbar } from '../component/navbar'
+import { useState, useEffect } from 'react'
+// import { Navbar } from '../../components/navbar'
 import { Button } from '@/components/ui/button'
-import { 
+import {
   Search,
-  Grid3X3, 
-  List, 
-  Star, 
-  Heart, 
-  ShoppingCart, 
+  Grid3X3,
+  List,
+  Star,
+  Heart,
+  ShoppingCart,
   Eye,
   SlidersHorizontal,
   X,
@@ -17,8 +17,10 @@ import {
   Ruler,
   Package
 } from 'lucide-react'
+import { Navbar } from '@/components/navbar'
+import { useProductStore } from '@/features/product/hooks'
 
-export const Route = createFileRoute('/user/catalog/')({
+export const Route = createFileRoute('/catalog/')({
   component: RouteComponent,
 })
 
@@ -34,12 +36,39 @@ function RouteComponent() {
   const [showMobileFilter, setShowMobileFilter] = useState(false)
   const [wishlist, setWishlist] = useState<number[]>([])
 
+  // Use Zustand store
+  const { list: products, loading: productsLoading, GetListProduct } = useProductStore()
+
   const handleMenuClick = () => {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
-  // Data produk hijab
-  const products = [
+  // Fetch products on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      GetListProduct(token)
+    }
+  }, [GetListProduct])
+
+  // Use store products if available, otherwise fallback to demo data
+  const displayProducts = products.length > 0 ? products.map(p => ({
+    id: parseInt(p.uuid) || 0,
+    name: p.title,
+    category: p.product_type,
+    price: p.variants?.[0]?.price || 0,
+    originalPrice: p.variants?.[0]?.price || 0,
+    discount: 0,
+    rating: 4.5,
+    reviews: 0,
+    colors: ["Default"],
+    sizes: ["One Size"],
+    image: "/user/modelhijab.jpg",
+    images: ["/user/modelhijab.jpg"],
+    description: p.description,
+    stock: p.variants?.[0]?.inventory_quantity || 0,
+    isBestseller: false
+  })) : [
     {
       id: 1,
       name: "Hijab Segi Empat Premium Silk",
@@ -151,15 +180,15 @@ function RouteComponent() {
   const sortOptions = ["Terbaru", "Harga Terendah", "Harga Tertinggi", "Rating Tertinggi", "Terlaris"]
 
   // Filter products
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = displayProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === 'Semua' || product.category === selectedCategory
-    const matchesColor = selectedColor === 'Semua' || product.colors.some(color => 
+    const matchesColor = selectedColor === 'Semua' || product.colors.some((color: string) =>
       color.toLowerCase().includes(selectedColor.toLowerCase())
     )
     const matchesSize = selectedSize === 'Semua' || product.sizes.includes(selectedSize)
-    
+
     let matchesPrice = true
     if (priceRange !== 'Semua') {
       switch (priceRange) {
@@ -311,7 +340,7 @@ function RouteComponent() {
     </div>
   )
 
-  const ProductCard = ({ product }: { product: typeof products[0] }) => (
+  const ProductCard = ({ product }: { product: typeof displayProducts[0] }) => (
     <div className="bg-card border border-primary/10 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group hover:scale-[1.02]">
       <div className="relative">
         <img 
@@ -392,7 +421,7 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onMenuClick={handleMenuClick} />
+      <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
