@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Navbar } from '../component/Navbar'
+import { Navbar } from '../component/navbar'
 import { Button } from '@/components/ui/button'
 import { 
   Search,

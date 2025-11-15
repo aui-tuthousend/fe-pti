@@ -1,12 +1,8 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
-import { useCreateUser } from '@/features/user/hooks'
+import { useRegisterForm } from '@/features/user/hooks'
 import { toast } from 'sonner'
-import { useNavigate } from '@tanstack/react-router'
-import { RegisterUserRequest } from '@/features/user/types'
 
 export const Route = createFileRoute('/auth/register')({
   component: RouteComponent,
@@ -14,37 +10,28 @@ export const Route = createFileRoute('/auth/register')({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const createUserMutation = useCreateUser()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [formData, setFormData] = useState<RegisterUserRequest>({
-    username: '',
-    password: '',
-    name: '',
-    // role: 'user',
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
+  const {
+    formData,
+    errors,
+    isLoading,
+    showPassword,
+    showConfirmPassword,
+    updateField,
+    setShowPassword,
+    setShowConfirmPassword,
+    register
+  } = useRegisterForm()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    
-    try {
-      await createUserMutation.mutateAsync({...formData, name: formData.username})
-      toast.success('Driver registered successfully!')
-      setIsLoading(false)
+
+    const result = await register()
+
+    if (result.success) {
+      toast.success('Pendaftaran berhasil!')
       navigate({ to: '/auth/login' })
-    } catch (error) {
-      setIsLoading(false)
-      toast.error('Failed to register driver. Please try again.')
+    } else {
+      toast.error(result.error || 'Pendaftaran gagal')
     }
   }
 
@@ -91,17 +78,22 @@ function RouteComponent() {
                 <input
                   id="fullName"
                   type="text"
-                  value={formData.  username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  value={formData.username}
+                  onChange={(e) => updateField('username', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.username ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Masukkan nama lengkap Anda"
                   required
                 />
+                {errors.username && (
+                  <p className="text-sm text-red-500">{errors.username}</p>
+                )}
               </div>
             </div>
 
             {/* Email Field */}
-            {/* <div className="space-y-1">
+            <div className="space-y-1">
               <label htmlFor="email" className="text-sm font-medium text-accent">
                 Email
               </label>
@@ -111,16 +103,21 @@ function RouteComponent() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  onChange={(e) => updateField('email', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.email ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Masukkan email Anda"
                   required
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email}</p>
+                )}
               </div>
-            </div> */}
+            </div>
 
             {/* Phone Field */}
-            {/* <div className="space-y-1">
+            <div className="space-y-1">
               <label htmlFor="phone" className="text-sm font-medium text-accent">
                 Nomor Telepon
               </label>
@@ -130,13 +127,18 @@ function RouteComponent() {
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.phone ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Masukkan nomor telepon"
                   required
                 />
+                {errors.phone && (
+                  <p className="text-sm text-red-500">{errors.phone}</p>
+                )}
               </div>
-            </div> */}
+            </div>
 
             {/* Password Field */}
             <div className="space-y-1">
@@ -149,11 +151,16 @@ function RouteComponent() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  onChange={(e) => updateField('password', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.password ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Buat password"
                   required
                 />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}

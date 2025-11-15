@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Navbar } from '../component/Navbar'
+import { Navbar } from '../component/navbar'
 import { Button } from '@/components/ui/button'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Gift, X } from 'lucide-react'
 // import { SuccessAlert } from '@/components/ui/SuccesAlert'

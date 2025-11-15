@@ -17,6 +17,8 @@ export interface LoginUserResponse extends UserResponse {
 }
 
 export interface RegisterUserRequest {
+  email: string;
+  phone: string;
   username: string;
   password: string;
   name: string;
@@ -24,7 +26,7 @@ export interface RegisterUserRequest {
 }
 
 export interface LoginUserRequest {
-  username: string;
+  email: string;
   password: string;
 }
 

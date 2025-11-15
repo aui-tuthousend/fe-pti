@@ -1,29 +1,37 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { useLoginForm } from '@/features/user/hooks'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/auth/login')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
+  const {
+    formData,
+    errors,
+    isLoading,
+    showPassword,
+    updateField,
+    setShowPassword,
+    login
+  } = useLoginForm()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-        // Handle successful login logic here
-      console.log('Login:', { email, password })
-    }, 2000)
+
+    const result = await login()
+
+    if (result.success) {
+      toast.success('Login berhasil!')
+      navigate({ to: '/user/home' })
+    } else {
+      toast.error(result.error || 'Login gagal')
+    }
   }
 
   return (
@@ -85,9 +93,11 @@ function RouteComponent() {
                 <input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  value={formData.email}
+                  onChange={(e) => updateField('email', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.email ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Masukkan email Anda"
                   required
                 />
@@ -104,9 +114,11 @@ function RouteComponent() {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background border border-primary rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  value={formData.password}
+                  onChange={(e) => updateField('password', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
+                    errors.password ? 'border-red-500' : 'border-primary'
+                  }`}
                   placeholder="Masukkan password Anda"
                   required
                 />
@@ -167,7 +179,7 @@ function RouteComponent() {
               <p className=" text-accent">
                 Belum punya akun?{' '}
                 <Link
-                  to="/auth/Register"
+                  to="/auth/register"
                   className="text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   Daftar sekarang
