@@ -1,9 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Navbar } from '../components/navbar'
 import { Button } from '@/components/ui/button'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
 import { UserResponse } from '../features/user/types'
+import { useGetAllProduct } from '../features/product/hooks'
+import type { ProductResponse } from '../features/product/types'
 
 interface HomeProps {
   user?: UserResponse
@@ -29,8 +31,26 @@ export function HomeComponent({ user, isLoadingUser }: HomeProps = {}) {
     console.log('👤 User is not logged in (not loading)');
   }
 
-  // Data model hijab
-  const hijabModels = [
+  // Fetch products from API
+  const { data: products, isLoading: isLoadingProducts } = useGetAllProduct()
+
+  // Note: Products are automatically fetched when the hook is used
+  // No need for manual refetch on mount
+
+  // Transform API products to display format or use fallback
+  const displayProducts = products && products.length > 0
+    ? products.map((product: ProductResponse, index: number) => ({
+        id: product.uuid,
+        name: product.title,
+        price: `Rp ${product.variants[0]?.price.toLocaleString('id-ID') || '0'}`,
+        originalPrice: `Rp ${Math.round((product.variants[0]?.price || 0) * 1.3).toLocaleString('id-ID')}`,
+        rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
+        reviews: Math.floor(Math.random() * 300) + 50, // Random reviews 50-350
+        image: "/user/modelhijab.jpg",
+        isNew: index < 2, // Mark first 2 as new
+        discount: `${Math.floor(Math.random() * 40) + 20}%` // Random discount 20-60%
+      }))
+    : [
     {
       id: 1,
       name: "Hijab Segi Empat Premium",
@@ -174,7 +194,7 @@ export function HomeComponent({ user, isLoadingUser }: HomeProps = {}) {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {hijabModels.map((product) => (
+            {displayProducts.map((product: any) => (
               <div key={product.id} className="group bg-card rounded-xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">

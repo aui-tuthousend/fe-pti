@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useCookies } from 'react-cookie';
 import { fetchServer } from '@/lib/fetchServer';
 import { urlBuilder } from "@/lib/utils";
 import type { ProductResponse, ProductRequest, PaginatedProductsResponse } from "./types";
@@ -111,12 +112,16 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   GetListProduct: async (token) => {
     try {
       set({ loading: true });
-      const response = await fetchServer(token, urlBuilder('/product'), {
+      // GET requests don't need authentication for products
+      const response = await fetch(urlBuilder('/products'), {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      const data = response.data;
-      console.log(data);
+      const data = await response.json();
+      console.log('Products response:', data);
 
       set({ list: data?.data || [] });
       return data;
@@ -131,11 +136,15 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   GetPaginatedProducts: async (token, page = 1, limit = 10) => {
     try {
       set({ loading: true });
-      const response = await fetchServer(token, `${urlBuilder('/product')}?page=${page}&limit=${limit}`, {
+      // GET requests don't need authentication for products
+      const response = await fetch(`${urlBuilder('/products')}?page=${page}&limit=${limit}`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      const data = response.data;
+      const data = await response.json();
       console.log("Paginated products response:", data);
 
       set({
@@ -152,27 +161,38 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   }
 }));
 
+import { useEffect } from 'react';
+
 // Legacy hooks for backward compatibility
 export function useGetAllProduct() {
   const { list, loading, GetListProduct } = useProductStore();
 
+  // Auto-fetch products on mount if list is empty
+  useEffect(() => {
+    if (list.length === 0) {
+      GetListProduct(''); // No token needed for GET requests
+    }
+  }, [list.length, GetListProduct]);
+
   return {
     data: list,
     isLoading: loading,
-    refetch: () => GetListProduct(localStorage.getItem('auth_token') || ''),
+    refetch: () => GetListProduct(''),
   };
 }
 
 export function useCreateProduct() {
+  const [cookies] = useCookies(['authToken']);
   const { CreateProduct, loading } = useProductStore();
 
   return {
-    mutateAsync: (productData: ProductRequest) => CreateProduct(localStorage.getItem('auth_token') || '', productData),
+    mutateAsync: (productData: ProductRequest) => CreateProduct(cookies.authToken || '', productData),
     isPending: loading,
   };
 }
 
 export function useGetInfiniteProducts(limit: number = 10) {
+  const [cookies] = useCookies(['authToken']);
   const { list, loading, pagination, GetPaginatedProducts } = useProductStore();
 
   return {
@@ -182,7 +202,7 @@ export function useGetInfiniteProducts(limit: number = 10) {
     },
     isLoading: loading,
     fetchNextPage: ({ pageParam = pagination.page + 1 }) =>
-      GetPaginatedProducts(localStorage.getItem('auth_token') || '', pageParam, limit),
+      GetPaginatedProducts(cookies.authToken || '', pageParam, limit),
     hasNextPage: pagination.page < pagination.totalPages,
   };
 }
