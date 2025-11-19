@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 // import { Navbar } from '../../components/navbar'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,6 @@ export const Route = createFileRoute('/catalog/')({
 })
 
 function RouteComponent() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Semua')
   const [selectedColor, setSelectedColor] = useState('Semua')
@@ -37,11 +36,7 @@ function RouteComponent() {
   const [wishlist, setWishlist] = useState<number[]>([])
 
   // Use Zustand store
-  const { list: products, loading: productsLoading, GetListProduct } = useProductStore()
-
-  const handleMenuClick = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+  const { list: products, GetListProduct } = useProductStore()
 
   // Fetch products on component mount
   useEffect(() => {
@@ -372,13 +367,19 @@ function RouteComponent() {
         </button>
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              className="bg-white text-gray-800 hover:bg-gray-100"
+            <Link
+              to="/catalog/$productId"
+              params={{ productId: product.id.toString() }}
+              onClick={() => localStorage.setItem('selectedProductId', product.id.toString())}
             >
-              <Eye className="w-4 h-4 mr-1" />
-              Lihat
-            </Button>
+              <Button
+                size="sm"
+                className="bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Lihat
+              </Button>
+            </Link>
             <Button
               size="sm"
               className="bg-primary hover:bg-primary/90"

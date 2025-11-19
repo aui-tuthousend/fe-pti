@@ -15,6 +15,7 @@ import { Route as CheckoutIndexRouteImport } from './routes/checkout/index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
 import { Route as CartIndexRouteImport } from './routes/cart/index'
 import { Route as DemoErrorsRouteImport } from './routes/demo/errors'
+import { Route as CatalogProductIdRouteImport } from './routes/catalog/$productId'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
@@ -52,6 +53,11 @@ const CartIndexRoute = CartIndexRouteImport.update({
 const DemoErrorsRoute = DemoErrorsRouteImport.update({
   id: '/demo/errors',
   path: '/demo/errors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogProductIdRoute = CatalogProductIdRouteImport.update({
+  id: '/catalog/$productId',
+  path: '/catalog/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/demo/errors': typeof DemoErrorsRoute
   '/cart': typeof CartIndexRoute
   '/catalog': typeof CatalogIndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/demo/errors': typeof DemoErrorsRoute
   '/cart': typeof CartIndexRoute
   '/catalog': typeof CatalogIndexRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_home': typeof HomeRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/demo/errors': typeof DemoErrorsRoute
   '/cart/': typeof CartIndexRoute
   '/catalog/': typeof CatalogIndexRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth/login'
     | '/auth/register'
+    | '/catalog/$productId'
     | '/demo/errors'
     | '/cart'
     | '/catalog'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth/login'
     | '/auth/register'
+    | '/catalog/$productId'
     | '/demo/errors'
     | '/cart'
     | '/catalog'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/_home'
     | '/auth/login'
     | '/auth/register'
+    | '/catalog/$productId'
     | '/demo/errors'
     | '/cart/'
     | '/catalog/'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  CatalogProductIdRoute: typeof CatalogProductIdRoute
   DemoErrorsRoute: typeof DemoErrorsRoute
   CartIndexRoute: typeof CartIndexRoute
   CatalogIndexRoute: typeof CatalogIndexRoute
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/demo/errors'
       fullPath: '/demo/errors'
       preLoaderRoute: typeof DemoErrorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalog/$productId': {
+      id: '/catalog/$productId'
+      path: '/catalog/$productId'
+      fullPath: '/catalog/$productId'
+      preLoaderRoute: typeof CatalogProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/register': {
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  CatalogProductIdRoute: CatalogProductIdRoute,
   DemoErrorsRoute: DemoErrorsRoute,
   CartIndexRoute: CartIndexRoute,
   CatalogIndexRoute: CatalogIndexRoute,

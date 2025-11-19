@@ -49,6 +49,10 @@ export function ThemeProvider({
     setTheme: (theme: Theme) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem(storageKey, theme)
+        // Update DOM immediately for instant visual change
+        const root = window.document.documentElement
+        root.classList.remove('light', 'dark')
+        root.classList.add(theme)
       }
       setTheme(theme)
     },
