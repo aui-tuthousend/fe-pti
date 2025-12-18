@@ -9,17 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as HomeRouteImport } from './routes/_home'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegisterIndexRouteImport } from './routes/register/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout/index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
 import { Route as CartIndexRouteImport } from './routes/cart/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as CatalogProductIdRouteImport } from './routes/catalog/$productId'
+import { Route as AdminProductIndexRouteImport } from './routes/admin/product/index'
 
-const HomeRoute = HomeRouteImport.update({
-  id: '/_home',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -52,75 +55,99 @@ const CartIndexRoute = CartIndexRouteImport.update({
   path: '/cart/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const CatalogProductIdRoute = CatalogProductIdRouteImport.update({
   id: '/catalog/$productId',
   path: '/catalog/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProductIndexRoute = AdminProductIndexRouteImport.update({
+  id: '/product/',
+  path: '/product/',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/catalog/$productId': typeof CatalogProductIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/cart': typeof CartIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/checkout': typeof CheckoutIndexRoute
   '/login': typeof LoginIndexRoute
   '/register': typeof RegisterIndexRoute
+  '/admin/product': typeof AdminProductIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog/$productId': typeof CatalogProductIdRoute
+  '/admin': typeof AdminIndexRoute
   '/cart': typeof CartIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/checkout': typeof CheckoutIndexRoute
   '/login': typeof LoginIndexRoute
   '/register': typeof RegisterIndexRoute
+  '/admin/product': typeof AdminProductIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_home': typeof HomeRoute
+  '/admin': typeof AdminRouteWithChildren
   '/catalog/$productId': typeof CatalogProductIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/cart/': typeof CartIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/login/': typeof LoginIndexRoute
   '/register/': typeof RegisterIndexRoute
+  '/admin/product/': typeof AdminProductIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/catalog/$productId'
+    | '/admin/'
     | '/cart'
     | '/catalog'
     | '/checkout'
     | '/login'
     | '/register'
+    | '/admin/product'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/catalog/$productId'
+    | '/admin'
     | '/cart'
     | '/catalog'
     | '/checkout'
     | '/login'
     | '/register'
+    | '/admin/product'
   id:
     | '__root__'
     | '/'
-    | '/_home'
+    | '/admin'
     | '/catalog/$productId'
+    | '/admin/'
     | '/cart/'
     | '/catalog/'
     | '/checkout/'
     | '/login/'
     | '/register/'
+    | '/admin/product/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  HomeRoute: typeof HomeRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CatalogProductIdRoute: typeof CatalogProductIdRoute
   CartIndexRoute: typeof CartIndexRoute
   CatalogIndexRoute: typeof CatalogIndexRoute
@@ -131,11 +158,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_home': {
-      id: '/_home'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof HomeRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -180,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/catalog/$productId': {
       id: '/catalog/$productId'
       path: '/catalog/$productId'
@@ -187,12 +221,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/product/': {
+      id: '/admin/product/'
+      path: '/product'
+      fullPath: '/admin/product'
+      preLoaderRoute: typeof AdminProductIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminProductIndexRoute: typeof AdminProductIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminProductIndexRoute: AdminProductIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  HomeRoute: HomeRoute,
+  AdminRoute: AdminRouteWithChildren,
   CatalogProductIdRoute: CatalogProductIdRoute,
   CartIndexRoute: CartIndexRoute,
   CatalogIndexRoute: CatalogIndexRoute,
