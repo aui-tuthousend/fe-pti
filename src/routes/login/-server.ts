@@ -35,7 +35,7 @@ export const loginFn = createServerFn({ method: 'POST' })
       console.log('Login result:', result)
 
       // result should match { token: string, user: ... } based on user request
-      if (!result.token || !result.user) {
+      if (!result.data.token) {
         throw new Error('Invalid response from server')
       }
 
