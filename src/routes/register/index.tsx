@@ -2,16 +2,16 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
-import { useUserStore } from '@/features/user/hooks'
 import { toast } from 'sonner'
+import { registerFn } from './-server'
 
-export const Route = createFileRoute('/auth/register')({
+export const Route = createFileRoute('/register/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const { RegisterUser, loading } = useUserStore()
+  const [isLoading, setIsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     username: '',
@@ -19,6 +19,7 @@ function RouteComponent() {
     name: '',
     email: '',
     phone: '',
+    role: 'user',
   })
 
   const [errors, setErrors] = useState({
@@ -51,22 +52,29 @@ function RouteComponent() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
 
     if (!validateForm()) return
 
     try {
-      await RegisterUser('', formData)
+      const payload = {
+        ...formData,
+        name: formData.username
+      }
+      await registerFn({ data: payload })
       toast.success('Pendaftaran berhasil!')
-      navigate({ to: '/auth/login' })
+      navigate({ to: '/login' })
     } catch (error: any) {
       toast.error(error?.message || 'Pendaftaran gagal')
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen flex">
       {/* Left Section - Register Form with Background */}
-      <div 
+      <div
         className="w-full lg:w-1/2 relative bg-cover bg-center bg-no-repeat flex items-center justify-center"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('/user/bgauth.jpg')`
@@ -76,9 +84,9 @@ function RouteComponent() {
         <div className="w-full max-w-md p-6 bg-card/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-primary mx-6 my-8">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-4">
-            <img 
-              src="/user/arimbilogo.png" 
-              alt="ArimbiStore Logo" 
+            <img
+              src="/user/arimbilogo.png"
+              alt="ArimbiStore Logo"
               className="w-12 h-12 mx-auto mb-2"
             />
             <h1 className="text-lg font-bold text-primary" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
@@ -108,9 +116,8 @@ function RouteComponent() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => updateField('username', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.username ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.username ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Masukkan nama lengkap Anda"
                   required
                 />
@@ -132,9 +139,8 @@ function RouteComponent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.email ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.email ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Masukkan email Anda"
                   required
                 />
@@ -156,9 +162,8 @@ function RouteComponent() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.phone ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.phone ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Masukkan nomor telepon"
                   required
                 />
@@ -180,9 +185,8 @@ function RouteComponent() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => updateField('password', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.password ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.password ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Buat password"
                   required
                 />
@@ -245,10 +249,10 @@ function RouteComponent() {
             {/* Register Button */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground font-semibold py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:shadow-lg"
             >
-              {loading ? 'Mendaftarkan...' : 'Daftar Sekarang'}
+              {isLoading ? 'Mendaftarkan...' : 'Daftar Sekarang'}
             </Button>
 
             {/* Login Link */}
@@ -256,7 +260,7 @@ function RouteComponent() {
               <p className="text-accent">
                 Sudah punya akun?{' '}
                 <Link
-                  to="/auth/login"
+                  to="/login"
                   className="text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   Masuk di sini
@@ -271,9 +275,9 @@ function RouteComponent() {
       <div className="hidden lg:flex lg:w-1/2 bg-background flex-col items-center justify-center p-12">
         <div className="text-center">
           <div className="mb-8">
-            <img 
-              src="/user/arimbilogo.png" 
-              alt="ArimbiStore Logo" 
+            <img
+              src="/user/arimbilogo.png"
+              alt="ArimbiStore Logo"
               className="w-32 h-32 mx-auto mb-6"
             />
           </div>

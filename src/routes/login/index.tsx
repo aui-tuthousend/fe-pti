@@ -3,16 +3,16 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/Loading'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { useAuthStore } from '@/features/auth/hook'
 import { toast } from 'sonner'
+import { loginFn } from './-server'
 
-export const Route = createFileRoute('/auth/login')({
+export const Route = createFileRoute('/login/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const { login, loading } = useAuthStore()
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -24,31 +24,18 @@ function RouteComponent() {
     }
   }
 
-  const validateForm = () => {
-    const newErrors = { email: '', password: '' }
-    if (!formData.email) newErrors.email = 'Email wajib diisi'
-    if (!formData.password) newErrors.password = 'Password wajib diisi'
-    setErrors(newErrors)
-    return !newErrors.email && !newErrors.password
-  }
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
 
-    if (!validateForm()) return
     try {
-      console.log("jancok jancok")
-      const result = await login(formData)
-      console.log(result.token)
-      if (result.token) {
-        console.log("jancok")
-        toast.success('Login berhasil!')
-        await navigate({ to: '/' })
-      } else {
-        toast.error(result.errors)
-      }
+      await loginFn({ data: { email: formData.email, password: formData.password } })
+      toast.success('Login successful')
+      navigate({ to: '/' })
     } catch (error: any) {
-      toast.error(error?.message || 'Login gagal')
+      toast.error(error.message || 'Login failed')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -58,9 +45,9 @@ function RouteComponent() {
       <div className="hidden lg:flex lg:w-1/2 bg-background flex-col items-center justify-center p-12">
         <div className="text-center">
           <div className="mb-8">
-            <img 
-              src="/user/arimbilogo.png" 
-              alt="ArimbiStore Logo" 
+            <img
+              src="/user/arimbilogo.png"
+              alt="ArimbiStore Logo"
               className="w-32 h-32 mx-auto mb-6"
             />
           </div>
@@ -71,7 +58,7 @@ function RouteComponent() {
       </div>
 
       {/* Right Section - Login Form with Background */}
-      <div 
+      <div
         className="w-full lg:w-1/2 relative bg-cover bg-center bg-no-repeat flex items-center justify-center"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('/user/bgauth.jpg')`
@@ -81,9 +68,9 @@ function RouteComponent() {
         <div className="w-full max-w-md p-8 bg-card/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-primary mx-6">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-6">
-            <img 
-              src="/user/arimbilogo.png" 
-              alt="ArimbiStore Logo" 
+            <img
+              src="/user/arimbilogo.png"
+              alt="ArimbiStore Logo"
               className="w-16 h-16 mx-auto mb-3"
             />
             <h1 className="text-xl font-bold text-primary" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
@@ -113,9 +100,8 @@ function RouteComponent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.email ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.email ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Masukkan email Anda"
                   required
                 />
@@ -134,9 +120,8 @@ function RouteComponent() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => updateField('password', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${
-                    errors.password ? 'border-red-500' : 'border-primary'
-                  }`}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-12 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.password ? 'border-red-500' : 'border-primary'
+                    }`}
                   placeholder="Masukkan password Anda"
                   required
                 />
@@ -170,10 +155,10 @@ function RouteComponent() {
             {/* Login Button */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground font-semibold py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:shadow-lg"
             >
-              {loading ? (
+              {isLoading ? (
                 <>
                   <LoadingSpinner className="text-primary-foreground" />
                   OTW masuk...
@@ -197,7 +182,7 @@ function RouteComponent() {
               <p className=" text-accent">
                 Belum punya akun?{' '}
                 <Link
-                  to="/auth/register"
+                  to="/register"
                   className="text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   Daftar sekarang
