@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { checkAuth } from './login/-server'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { AdminSidebar } from '@/components/admin-sidebar'
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async ({ location }) => {
@@ -12,6 +14,14 @@ export const Route = createFileRoute('/admin')({
           error: 'unauthorized',
         },
       })
+    } else if (auth.user.role !== 'admin') {
+      throw redirect({
+        to: '/',
+        search: {
+          redirect: location.href,
+          error: 'unauthorized',
+        },
+      })
     }
     return { auth }
   },
@@ -19,9 +29,19 @@ export const Route = createFileRoute('/admin')({
 })
 
 function RouteComponent() {
+  const { auth } = Route.useRouteContext()
+
   return (
-    <main className="flex-1 p-6">
-      <Outlet />
-    </main>
+    <SidebarProvider>
+      <AdminSidebar user={auth.user} />
+      <main className="w-full">
+        <div className="p-2">
+          <SidebarTrigger />
+        </div>
+        <div className="p-6">
+          <Outlet />
+        </div>
+      </main>
+    </SidebarProvider>
   )
 }

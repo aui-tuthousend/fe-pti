@@ -29,9 +29,13 @@ function RouteComponent() {
     setIsLoading(true)
 
     try {
-      await loginFn({ data: { email: formData.email, password: formData.password } })
+      const result = await loginFn({ data: { email: formData.email, password: formData.password } })
       toast.success('Login successful')
-      navigate({ to: '/' })
+      if (result.user.role == 'admin') {
+        navigate({ to: '/admin' })
+      } else {
+        navigate({ to: '/' })
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
     } finally {

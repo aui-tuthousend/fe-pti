@@ -32,7 +32,7 @@ export const loginFn = createServerFn({ method: 'POST' })
 
       const result = await response.json()
 
-      console.log('Login result:', result)
+      // console.log('Login result:', result)
 
       // result should match { token: string, user: ... } based on user request
       // if (!result.data.token) {
@@ -44,7 +44,7 @@ export const loginFn = createServerFn({ method: 'POST' })
         user: result.data,
       })
 
-      return { success: true, user: result.user }
+      return { success: true, user: result.data }
     } catch (error) {
       // Re-throw so the client sees the error
       console.error('Login Error:', error)
