@@ -35,14 +35,13 @@ export const loginFn = createServerFn({ method: 'POST' })
       console.log('Login result:', result)
 
       // result should match { token: string, user: ... } based on user request
-      if (!result.data.token) {
-        throw new Error('Invalid response from server')
-      }
+      // if (!result.data.token) {
+      //   throw new Error('Invalid response from server')
+      // }
 
       const session = await useAppSession()
       await session.update({
-        token: result.token,
-        user: result.user,
+        user: result.data,
       })
 
       return { success: true, user: result.user }

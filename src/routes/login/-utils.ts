@@ -3,14 +3,15 @@ import { useSession } from '@tanstack/react-start/server'
 import { SESSION_SECRET } from '@/config/env'
 
 export type User = {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
+  name: string,
+  username: string,
+  email: string,
+  phone: string,
+  role: string,
+  token: string
 }
 
 export type SessionData = {
-  token: string
   user: User
 }
 
