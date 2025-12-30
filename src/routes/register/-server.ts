@@ -2,7 +2,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { API_BASE_URL } from '@/config/env'
 
 type RegisterInput = {
-  username: string
   name: string
   email: string
   phone: string

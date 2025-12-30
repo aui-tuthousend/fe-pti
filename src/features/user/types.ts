@@ -1,5 +1,4 @@
 export interface User {
-  username: string;
   password: string;
   name: string;
   role: string;
@@ -7,7 +6,6 @@ export interface User {
 
 export interface UserResponse {
   id: number;
-  username: string;
   name: string;
   role: string;
 }
@@ -19,7 +17,6 @@ export interface LoginUserResponse extends UserResponse {
 export interface RegisterUserRequest {
   email: string;
   phone: string;
-  username: string;
   password: string;
   name: string;
   role?: string;
@@ -37,10 +34,9 @@ export interface UpdateUserRequest {
 }
 
 export function toUserRespons(user: any): UserResponse {
-  return{
+  return {
     id: user.id,
     name: user.name,
-    username: user.username,
     role: user.role
   }
 }

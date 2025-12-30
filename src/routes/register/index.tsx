@@ -59,7 +59,6 @@ function RouteComponent() {
 
     try {
       const payload = {
-        username: formData.name, // Use name as username
         name: formData.name,
         email: formData.email,
         phone: formData.phone,

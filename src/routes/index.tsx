@@ -174,7 +174,7 @@ function RouteComponent() {
             </p>
             {user && (
               <div className="mt-4 text-sm text-muted-foreground">
-                Based on your profile: <span className="text-primary font-medium">{user.username}</span>
+                Based on your profile: <span className="text-primary font-medium">{user.name}</span>
               </div>
             )}
           </div>
