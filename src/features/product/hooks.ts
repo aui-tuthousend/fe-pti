@@ -22,6 +22,9 @@ interface ProductStore {
 
   setModel: (model?: ProductResponse | ProductRequest) => void;
   CreateProduct: (token: string, payload: ProductRequest) => Promise<any>;
+  UpdateProduct: (token: string, uuid: string, payload: Partial<ProductRequest>) => Promise<any>;
+  DeleteProduct: (token: string, uuid: string) => Promise<any>;
+  GetProductDetail: (uuid: string) => Promise<any>;
   GetListProduct: (token: string) => Promise<any>;
   GetPaginatedProducts: (token: string, page?: number, limit?: number) => Promise<any>;
 }
@@ -95,7 +98,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   CreateProduct: async (token, payload) => {
     set({ loading: true });
     try {
-      const response = await fetchServer(token, urlBuilder('/product'), {
+      const response = await fetchServer(token, urlBuilder('/products'), {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -103,6 +106,77 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       return response;
     } catch (error) {
       console.error('Error creating product:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  UpdateProduct: async (token, uuid, payload) => {
+    set({ loading: true });
+    try {
+      const response = await fetchServer(token, urlBuilder(`/products/${uuid}`), {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      // Update the product in the list if it exists
+      const currentList = get().list;
+      const updatedList = currentList.map(product =>
+        product.uuid === uuid ? { ...product, ...response.data } : product
+      );
+      set({ list: updatedList });
+
+      return response;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  DeleteProduct: async (token, uuid) => {
+    set({ loading: true });
+    try {
+      const response = await fetchServer(token, urlBuilder(`/products/${uuid}`), {
+        method: 'DELETE',
+      });
+
+      // Remove the product from the list
+      const currentList = get().list;
+      const updatedList = currentList.filter(product => product.uuid !== uuid);
+      set({ list: updatedList });
+
+      return response;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  GetProductDetail: async (uuid) => {
+    set({ loading: true });
+    try {
+      const response = await fetch(urlBuilder(`/products/${uuid}/detail`), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Product detail response:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error getting product detail:', error);
       throw error;
     } finally {
       set({ loading: false });
@@ -161,7 +235,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   }
 }));
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Legacy hooks for backward compatibility
 export function useGetAllProduct() {
@@ -191,6 +265,48 @@ export function useCreateProduct() {
   };
 }
 
+export function useUpdateProduct() {
+  const [cookies] = useCookies(['authToken']);
+  const { UpdateProduct, loading } = useProductStore();
+
+  return {
+    mutateAsync: (uuid: string, productData: Partial<ProductRequest>) =>
+      UpdateProduct(cookies.authToken || '', uuid, productData),
+    isPending: loading,
+  };
+}
+
+export function useDeleteProduct() {
+  const [cookies] = useCookies(['authToken']);
+  const { DeleteProduct, loading } = useProductStore();
+
+  return {
+    mutateAsync: (uuid: string) => DeleteProduct(cookies.authToken || '', uuid),
+    isPending: loading,
+  };
+}
+
+export function useGetProductDetail(uuid: string) {
+  const { GetProductDetail, loading } = useProductStore();
+  const [product, setProduct] = useState<ProductResponse | null>(null);
+
+  useEffect(() => {
+    if (uuid) {
+      GetProductDetail(uuid).then((data) => {
+        setProduct(data.data);
+      }).catch((error) => {
+        console.error('Error fetching product detail:', error);
+      });
+    }
+  }, [uuid, GetProductDetail]);
+
+  return {
+    data: product,
+    isLoading: loading,
+    refetch: () => GetProductDetail(uuid),
+  };
+}
+
 export function useGetInfiniteProducts(limit: number = 10) {
   const [cookies] = useCookies(['authToken']);
   const { list, loading, pagination, GetPaginatedProducts } = useProductStore();
@@ -206,3 +322,4 @@ export function useGetInfiniteProducts(limit: number = 10) {
     hasNextPage: pagination.page < pagination.totalPages,
   };
 }
+

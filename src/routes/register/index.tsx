@@ -14,20 +14,18 @@ function RouteComponent() {
   const [isLoading, setIsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
     name: '',
     email: '',
     phone: '',
+    password: '',
     role: 'user',
   })
 
   const [errors, setErrors] = useState({
-    username: '',
-    password: '',
     name: '',
     email: '',
     phone: '',
+    password: '',
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -40,26 +38,33 @@ function RouteComponent() {
   }
 
   const validateForm = () => {
-    const newErrors = { username: '', password: '', name: '', email: '', phone: '' }
-    if (!formData.username.trim()) newErrors.username = 'Nama lengkap wajib diisi'
+    const newErrors = { name: '', email: '', phone: '', password: '' }
+    if (!formData.name.trim()) newErrors.name = 'Nama lengkap wajib diisi'
     if (!formData.email.trim()) newErrors.email = 'Email wajib diisi'
     if (!formData.phone.trim()) newErrors.phone = 'Nomor telepon wajib diisi'
     if (!formData.password) newErrors.password = 'Password wajib diisi'
     else if (formData.password.length < 6) newErrors.password = 'Password minimal 6 karakter'
     setErrors(newErrors)
-    return !newErrors.username && !newErrors.email && !newErrors.phone && !newErrors.password
+    return !newErrors.name && !newErrors.email && !newErrors.phone && !newErrors.password
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    if (!validateForm()) return
+    if (!validateForm()) {
+      setIsLoading(false)
+      return
+    }
 
     try {
       const payload = {
-        ...formData,
-        name: formData.username
+        username: formData.name, // Use name as username
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role,
       }
       await registerFn({ data: payload })
       toast.success('Pendaftaran berhasil!')
@@ -114,15 +119,15 @@ function RouteComponent() {
                 <input
                   id="fullName"
                   type="text"
-                  value={formData.username}
-                  onChange={(e) => updateField('username', e.target.value)}
-                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.username ? 'border-red-500' : 'border-primary'
+                  value={formData.name}
+                  onChange={(e) => updateField('name', e.target.value)}
+                  className={`w-full bg-background border rounded-lg pl-10 pr-4 py-3 text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all ${errors.name ? 'border-red-500' : 'border-primary'
                     }`}
                   placeholder="Masukkan nama lengkap Anda"
                   required
                 />
-                {errors.username && (
-                  <p className="text-sm text-red-500">{errors.username}</p>
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name}</p>
                 )}
               </div>
             </div>

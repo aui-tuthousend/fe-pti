@@ -3,10 +3,10 @@ import { API_BASE_URL } from '@/config/env'
 
 type RegisterInput = {
   username: string
-  password: string
   name: string
   email: string
   phone: string
+  password: string
   role: string
 }
 
@@ -27,8 +27,8 @@ export const registerFn = createServerFn({ method: 'POST' })
         console.error('Backend login error:', response.status, errorData)
         throw new Error(
           errorData.message ||
-            errorData.error ||
-            `Register failed with status ${response.status}`,
+          errorData.error ||
+          `Register failed with status ${response.status}`,
         )
       }
 

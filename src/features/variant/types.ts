@@ -14,6 +14,7 @@ export interface Variant {
 }
 
 export interface VariantRequest {
+  uuid?: string;
   title: string;
   price: number;
   sku: string;
