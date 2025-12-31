@@ -5,6 +5,7 @@ import type { ProductRequest } from '@/features/product/types'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { getImageUrl } from '@/config/env'
 
 export const Route = createFileRoute('/admin/product/')({
   component: RouteComponent,
@@ -44,15 +45,6 @@ function RouteComponent() {
       toast.error(error?.message || 'Failed to fetch product details')
     } finally {
       setIsFetchingDetail(false)
-    }
-  }
-
-  const refreshProduct = async (uuid: string) => {
-    try {
-      const response = await GetProductDetail(uuid)
-      setSelectedProduct(response.data)
-    } catch (error: any) {
-      console.error('Failed to refresh product:', error)
     }
   }
 
@@ -118,60 +110,83 @@ function RouteComponent() {
       </div>
 
       {/* Product Table */}
-      <div className="bg-card rounded-lg border">
+      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-muted">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Image</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Vendor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Variants</th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Image</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vendor</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Variants</th>
+                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-border">
               {loading && list.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    Loading products...
+                  <td colSpan={7} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <span className="text-muted-foreground">Loading products...</span>
+                    </div>
                   </td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    No products found. Click "Add Product" to create one.
+                  <td colSpan={7} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                        <Plus size={24} className="text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground">No products found</p>
+                      <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
+                        Add your first product
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 list.map((product) => (
-                  <tr key={product.uuid} className="hover:bg-muted/50">
+                  <tr key={product.uuid} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
-                      {product.images && product.images.length > 0 ? (
-                        <img src={product.images[0].url} alt={product.title} className="w-12 h-12 object-cover rounded" />
+                      {product.images && product.images.length > 0 && product.images[0]?.url ? (
+                        <img
+                          src={getImageUrl(product.images[0].url) || ''}
+                          alt={product.title}
+                          className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-muted"
+                        />
                       ) : (
-                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                        <div className="w-14 h-14 bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center text-xs text-muted-foreground font-medium">
+                          No Img
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium">{product.title}</div>
-                      <div className="text-sm text-muted-foreground truncate max-w-xs">
+                      <div className="font-semibold text-foreground">{product.title}</div>
+                      <div className="text-sm text-muted-foreground truncate max-w-xs mt-0.5">
                         {product.description || 'No description'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">{product.product_type}</td>
-                    <td className="px-6 py-4 text-sm">{product.vendor}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' :
-                        product.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
+                      <span className="text-sm bg-muted px-2 py-1 rounded-md">{product.product_type}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{product.vendor}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${product.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                        product.status === 'draft' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                          'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
                         }`}>
-                        {product.status}
+                        {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{product.variants?.length || 0}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded-md">
+                        {product.variants?.length || 0} variants
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -179,6 +194,7 @@ function RouteComponent() {
                           size="sm"
                           onClick={() => handleEditProduct(product.uuid)}
                           disabled={isFetchingDetail}
+                          className="hover:bg-primary hover:text-primary-foreground transition-colors"
                         >
                           <Edit size={16} />
                         </Button>
@@ -187,8 +203,9 @@ function RouteComponent() {
                           size="sm"
                           onClick={() => handleDeleteProduct(product.uuid, product.title)}
                           disabled={isLoading}
+                          className="hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors"
                         >
-                          <Trash2 size={16} className="text-red-500" />
+                          <Trash2 size={16} />
                         </Button>
                       </div>
                     </td>
@@ -201,13 +218,13 @@ function RouteComponent() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t flex items-center justify-between">
+          <div className="px-6 py-4 border-t flex items-center justify-between bg-muted/30">
             <div className="text-sm text-muted-foreground">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-              {pagination.total} products
+              Showing <span className="font-medium text-foreground">{((pagination.page - 1) * pagination.limit) + 1}</span> to{' '}
+              <span className="font-medium text-foreground">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{' '}
+              <span className="font-medium text-foreground">{pagination.total}</span> products
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -222,6 +239,7 @@ function RouteComponent() {
                   variant={page === pagination.page ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => handlePageChange(page)}
+                  className="min-w-[36px]"
                 >
                   {page}
                 </Button>
@@ -324,28 +342,37 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file')
+  const [imageUrl, setImageUrl] = useState('')
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (previewUrl && !imageUrl) URL.revokeObjectURL(previewUrl)
     }
-  }, [previewUrl])
+  }, [previewUrl, imageUrl])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return
 
     const file = e.target.files[0]
     setSelectedFile(file)
+    setImageUrl('') // Clear URL if file is selected
 
     // Create local preview
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
   }
 
+  const handleUrlChange = (url: string) => {
+    setImageUrl(url)
+    setSelectedFile(null) // Clear file if URL is entered
+    setPreviewUrl(url) // Use URL directly as preview
+  }
+
   const handleRemoveSelectedImage = () => {
     setSelectedFile(null)
     setPreviewUrl(null)
-    // Clear the input value if needed via ref, but simple state clear works for UI
+    setImageUrl('')
   }
 
   const updateField = (field: string, value: any) => {
@@ -398,7 +425,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Deferred upload: Upload image first if selected
+    // Deferred upload: Upload image first if file selected
     if (selectedFile && product?.uuid) {
       setIsUploading(true)
       try {
@@ -407,6 +434,31 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
         toast.success('Image uploaded successfully!')
       } catch (error: any) {
         toast.error(error?.message || 'Failed to upload image')
+        setIsUploading(false)
+        return // Stop submission if upload fails
+      } finally {
+        setIsUploading(false)
+      }
+    }
+
+    // Handle URL upload: fetch image from URL and upload
+    if (imageUrl && !selectedFile && product?.uuid) {
+      setIsUploading(true)
+      try {
+        if (!auth.user?.token) throw new Error('Unauthorized')
+
+        // Fetch image from URL
+        const response = await fetch(imageUrl)
+        if (!response.ok) throw new Error('Failed to fetch image from URL')
+
+        const blob = await response.blob()
+        const filename = imageUrl.split('/').pop() || 'image.jpg'
+        const file = new File([blob], filename, { type: blob.type || 'image/jpeg' })
+
+        await UploadImage(auth.user.token, product.uuid, file)
+        toast.success('Image uploaded successfully!')
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to upload image from URL')
         setIsUploading(false)
         return // Stop submission if upload fails
       } finally {
@@ -526,63 +578,128 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {/* Existing Images from Server */}
-                  {product.images?.map((img: any) => (
-                    <div key={img.uuid} className="relative group">
-                      <img
-                        src={img.url}
-                        alt="Product"
-                        className="w-full h-24 object-cover rounded-md border"
-                      />
-                    </div>
-                  ))}
+                {/* Existing Images from Server */}
+                {product.images && product.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {product.images.map((img: any) => (
+                      <div key={img.uuid} className="relative group">
+                        <img
+                          src={getImageUrl(img.url) || ''}
+                          alt="Product"
+                          className="w-full h-24 object-cover rounded-md border"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                  {/* Local Preview of Selected Image */}
-                  {previewUrl && (
-                    <div className="relative group">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="w-full h-24 object-cover rounded-md border-2 border-primary"
-                      />
+                {/* Add New Image */}
+                {!previewUrl ? (
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <p className="text-sm font-medium">Add New Image</p>
+
+                    {/* Tab Buttons */}
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={handleRemoveSelectedImage}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600"
+                        onClick={() => setUploadMode('file')}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors ${uploadMode === 'file'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                          }`}
                       >
-                        <X size={12} />
+                        📁 Upload File
                       </button>
-                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 text-center truncate">
-                        New
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadMode('url')}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors ${uploadMode === 'url'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                          }`}
+                      >
+                        🔗 From URL
+                      </button>
                     </div>
-                  )}
 
-                  {/* Upload Button - hidden when preview exists */}
-                  {!previewUrl && (
-                    <label className={`
-                        border-2 border-dashed border-gray-300 rounded-md 
+                    {/* File Upload */}
+                    {uploadMode === 'file' && (
+                      <label className={`
+                        border-2 border-dashed border-gray-300 rounded-lg 
                         flex flex-col items-center justify-center 
-                        h-24 cursor-pointer hover:border-primary hover:bg-muted/50 transition
+                        h-32 cursor-pointer hover:border-primary hover:bg-muted/50 transition
                         ${isUploading ? 'opacity-50 pointer-events-none' : ''}
                       `}>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        disabled={isUploading}
-                      />
-                      <Plus size={20} className="text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Select Image</span>
-                    </label>
-                  )}
-                </div>
-                {selectedFile && (
-                  <p className="text-xs text-muted-foreground">
-                    * Image "{selectedFile.name}" will be uploaded when you click "Update Product".
-                  </p>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                        />
+                        <Plus size={24} className="text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Click to select image</span>
+                        <span className="text-xs text-muted-foreground mt-1">PNG, JPG, GIF up to 10MB</span>
+                      </label>
+                    )}
+
+                    {/* URL Input */}
+                    {uploadMode === 'url' && (
+                      <div className="space-y-3">
+                        <input
+                          type="url"
+                          value={imageUrl}
+                          onChange={(e) => handleUrlChange(e.target.value)}
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter a direct link to an image file
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Preview of Selected/Entered Image */
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <p className="text-sm font-medium">New Image Preview</p>
+                    <div className="flex items-start gap-4">
+                      <div className="relative">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-32 h-32 object-cover rounded-lg border-2 border-primary"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect fill="%23f0f0f0" width="128" height="128"/><text x="50%" y="50%" font-size="12" text-anchor="middle" dy=".3em" fill="%23999">Invalid URL</text></svg>';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveSelectedImage}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow hover:bg-red-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="flex-1 text-sm">
+                        {selectedFile ? (
+                          <>
+                            <p className="font-medium">{selectedFile.name}</p>
+                            <p className="text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                          </>
+                        ) : imageUrl ? (
+                          <>
+                            <p className="font-medium">Image from URL</p>
+                            <p className="text-muted-foreground truncate max-w-xs">{imageUrl}</p>
+                          </>
+                        ) : null}
+                        <p className="text-xs text-amber-600 mt-2">
+                          * Will be uploaded when you click "Update Product"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
