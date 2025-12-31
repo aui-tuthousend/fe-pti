@@ -1,5 +1,10 @@
 import { Variant, VariantRequest } from "../variant/types";
 
+export interface ProductImage {
+  uuid: string;
+  url: string;
+}
+
 export interface ProductResponse {
   uuid: string;
   title: string;
@@ -12,6 +17,7 @@ export interface ProductResponse {
   created_at: Date;
   updated_at: Date;
   variants: Variant[];
+  images: ProductImage[];
 }
 
 export interface PaginatedProductsResponse {

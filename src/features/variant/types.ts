@@ -11,6 +11,7 @@ export interface Variant {
   created_at: Date;
   updated_at: Date;
   inventory_item?: InventoryItem;
+  images?: { uuid: string; url: string }[];
 }
 
 export interface VariantRequest {

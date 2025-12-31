@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { useCookies } from 'react-cookie';
 import { fetchServer } from '@/lib/fetchServer';
 import { urlBuilder } from "@/lib/utils";
-import type { ProductResponse, ProductRequest, PaginatedProductsResponse } from "./types";
+import type { ProductResponse, ProductRequest } from "./types";
 
 interface ProductStore {
   list: ProductResponse[];
@@ -24,6 +24,7 @@ interface ProductStore {
   CreateProduct: (token: string, payload: ProductRequest) => Promise<any>;
   UpdateProduct: (token: string, uuid: string, payload: Partial<ProductRequest>) => Promise<any>;
   DeleteProduct: (token: string, uuid: string) => Promise<any>;
+  UploadImage: (token: string, uuid: string, file: File) => Promise<any>;
   GetProductDetail: (uuid: string) => Promise<any>;
   GetListProduct: (token: string) => Promise<any>;
   GetPaginatedProducts: (token: string, page?: number, limit?: number) => Promise<any>;
@@ -42,7 +43,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     published_at: null,
     created_at: new Date(),
     updated_at: new Date(),
-    variants: []
+    variants: [],
+    images: []
   },
   model: {
     uuid: "",
@@ -55,7 +57,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     published_at: null,
     created_at: new Date(),
     updated_at: new Date(),
-    variants: []
+    variants: [],
+    images: [] // images logic usually not in model for creation, but good to have consistency if Model can be Response
   },
   loading: false,
   pagination: {
@@ -151,6 +154,37 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       return response;
     } catch (error) {
       console.error('Error deleting product:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  UploadImage: async (token, uuid, file) => {
+    set({ loading: true });
+    try {
+      const formData = new FormData();
+      formData.append('image', file); // Changed from 'file' to 'image' assuming backend expects 'image'
+
+      const response = await fetch(urlBuilder(`/products/${uuid}/images/upload`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        // Try to parse error message from backend
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Upload Error Response:", errorData);
+        throw new Error(errorData.message || `Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error uploading image:', error);
       throw error;
     } finally {
       set({ loading: false });
@@ -282,6 +316,16 @@ export function useDeleteProduct() {
 
   return {
     mutateAsync: (uuid: string) => DeleteProduct(cookies.authToken || '', uuid),
+    isPending: loading,
+  };
+}
+
+export function useUploadProductImage() {
+  const [cookies] = useCookies(['authToken']);
+  const { UploadImage, loading } = useProductStore();
+
+  return {
+    mutateAsync: (uuid: string, file: File) => UploadImage(cookies.authToken || '', uuid, file),
     isPending: loading,
   };
 }

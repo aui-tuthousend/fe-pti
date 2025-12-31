@@ -47,6 +47,15 @@ function RouteComponent() {
     }
   }
 
+  const refreshProduct = async (uuid: string) => {
+    try {
+      const response = await GetProductDetail(uuid)
+      setSelectedProduct(response.data)
+    } catch (error: any) {
+      console.error('Failed to refresh product:', error)
+    }
+  }
+
   const handleCreateProduct = async (data: ProductRequest) => {
     setIsLoading(true)
     try {
@@ -114,6 +123,7 @@ function RouteComponent() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Image</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Title</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Vendor</th>
@@ -125,19 +135,26 @@ function RouteComponent() {
             <tbody className="divide-y">
               {loading && list.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                     Loading products...
                   </td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                     No products found. Click "Add Product" to create one.
                   </td>
                 </tr>
               ) : (
                 list.map((product) => (
                   <tr key={product.uuid} className="hover:bg-muted/50">
+                    <td className="px-6 py-4">
+                      {product.images && product.images.length > 0 ? (
+                        <img src={product.images[0].url} alt={product.title} className="w-12 h-12 object-cover rounded" />
+                      ) : (
+                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="font-medium">{product.title}</div>
                       <div className="text-sm text-muted-foreground truncate max-w-xs">
@@ -302,6 +319,35 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
 
   const [tagsInput, setTagsInput] = useState(product?.tags?.join(', ') || '')
 
+  const { auth } = Route.useRouteContext()
+  const { UploadImage } = useProductStore()
+  const [isUploading, setIsUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return
+
+    const file = e.target.files[0]
+    setSelectedFile(file)
+
+    // Create local preview
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+  }
+
+  const handleRemoveSelectedImage = () => {
+    setSelectedFile(null)
+    setPreviewUrl(null)
+    // Clear the input value if needed via ref, but simple state clear works for UI
+  }
+
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -349,8 +395,25 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Deferred upload: Upload image first if selected
+    if (selectedFile && product?.uuid) {
+      setIsUploading(true)
+      try {
+        if (!auth.user?.token) throw new Error('Unauthorized')
+        await UploadImage(auth.user.token, product.uuid, selectedFile)
+        toast.success('Image uploaded successfully!')
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to upload image')
+        setIsUploading(false)
+        return // Stop submission if upload fails
+      } finally {
+        setIsUploading(false)
+      }
+    }
+
     const tags = tagsInput.split(',').map((tag: string) => tag.trim()).filter(Boolean)
 
     // Send full variants including uuid (for updates) and inventory_item
@@ -384,6 +447,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                 value={formData.title}
                 onChange={(e) => updateField('title', e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg"
+                placeholder="e.g. Premium Cotton T-Shirt"
                 required
               />
             </div>
@@ -394,6 +458,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                 value={formData.description}
                 onChange={(e) => updateField('description', e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg"
+                placeholder="Product description and details..."
                 rows={3}
               />
             </div>
@@ -406,6 +471,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                   value={formData.product_type}
                   onChange={(e) => updateField('product_type', e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g. Apparel"
                   required
                 />
               </div>
@@ -417,6 +483,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                   value={formData.vendor}
                   onChange={(e) => updateField('vendor', e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g. Nike"
                   required
                 />
               </div>
@@ -448,6 +515,77 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Images Section */}
+          <div className="space-y-4 border-t pt-6">
+            <h3 className="text-lg font-semibold">Images</h3>
+            {!product?.uuid ? (
+              <div className="bg-yellow-50 text-yellow-800 p-3 rounded-md text-sm">
+                Please save the product first to upload images.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Existing Images from Server */}
+                  {product.images?.map((img: any) => (
+                    <div key={img.uuid} className="relative group">
+                      <img
+                        src={img.url}
+                        alt="Product"
+                        className="w-full h-24 object-cover rounded-md border"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Local Preview of Selected Image */}
+                  {previewUrl && (
+                    <div className="relative group">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-full h-24 object-cover rounded-md border-2 border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveSelectedImage}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600"
+                      >
+                        <X size={12} />
+                      </button>
+                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 text-center truncate">
+                        New
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Upload Button - hidden when preview exists */}
+                  {!previewUrl && (
+                    <label className={`
+                        border-2 border-dashed border-gray-300 rounded-md 
+                        flex flex-col items-center justify-center 
+                        h-24 cursor-pointer hover:border-primary hover:bg-muted/50 transition
+                        ${isUploading ? 'opacity-50 pointer-events-none' : ''}
+                      `}>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                      <Plus size={20} className="text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">Select Image</span>
+                    </label>
+                  )}
+                </div>
+                {selectedFile && (
+                  <p className="text-xs text-muted-foreground">
+                    * Image "{selectedFile.name}" will be uploaded when you click "Update Product".
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Variants */}
@@ -484,6 +622,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                       value={variant.title}
                       onChange={(e) => updateVariant(index, 'title', e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
+                      placeholder="e.g. Small / Red"
                       required
                     />
                   </div>
@@ -495,6 +634,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                       value={variant.option1}
                       onChange={(e) => updateVariant(index, 'option1', e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
+                      placeholder="e.g. Small"
                       required
                     />
                   </div>
@@ -506,6 +646,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                       value={variant.price}
                       onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value))}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
+                      placeholder="0"
                       required
                     />
                   </div>
@@ -517,6 +658,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                       value={variant.sku}
                       onChange={(e) => updateVariant(index, 'sku', e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
+                      placeholder="e.g. PROD-S-RED"
                       required
                     />
                   </div>
@@ -546,6 +688,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                         value={variant.inventory_item.sku}
                         onChange={(e) => updateVariant(index, 'inventory_item.sku', e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg text-sm"
+                        placeholder="e.g. INV-S-RED"
                         required
                       />
                     </div>
@@ -557,6 +700,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                         value={variant.inventory_item.available}
                         onChange={(e) => updateVariant(index, 'inventory_item.available', parseInt(e.target.value))}
                         className="w-full px-3 py-2 border rounded-lg text-sm"
+                        placeholder="0"
                         required
                       />
                     </div>
@@ -568,6 +712,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading }: Prod
                         value={variant.inventory_item.cost}
                         onChange={(e) => updateVariant(index, 'inventory_item.cost', parseFloat(e.target.value))}
                         className="w-full px-3 py-2 border rounded-lg text-sm"
+                        placeholder="0.00"
                         required
                       />
                     </div>
