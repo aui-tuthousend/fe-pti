@@ -38,11 +38,12 @@ export class ProductService {
         return data;
     }
 
-    async createProduct(product: ProductRequest): Promise<void> {
+    async createProduct(product: ProductRequest, token: string): Promise<void> {
         const response = await fetch(this.baseUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(product),
         });

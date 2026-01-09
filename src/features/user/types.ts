@@ -1,17 +1,20 @@
 export interface User {
-  password: string;
   name: string;
+  email: string;
+  phone: string;
   role: string;
+  token?: string;
 }
 
 export interface UserResponse {
-  id: number;
   name: string;
+  email: string;
+  phone: string;
   role: string;
 }
 
-export interface LoginUserResponse extends UserResponse {
-  token: string;
+export interface LoginUserResponse {
+  data: UserResponse & { token: string };
 }
 
 export interface RegisterUserRequest {
@@ -35,8 +38,9 @@ export interface UpdateUserRequest {
 
 export function toUserRespons(user: any): UserResponse {
   return {
-    id: user.id,
     name: user.name,
+    email: user.email,
+    phone: user.phone,
     role: user.role
   }
 }

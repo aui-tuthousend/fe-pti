@@ -14,7 +14,8 @@ export async function fetchServer(token: string, url: string, options: RequestIn
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.message || errorBody.error || `HTTP error! status: ${response.status}`);
   }
 
   const data = await response.json();

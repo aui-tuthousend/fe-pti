@@ -1,4 +1,10 @@
-import { InventoryItem, InventoryItemRequest } from "../inventory-item/types";
+// import { InventoryItem, InventoryItemRequest } from "../inventory-item/types";
+
+export interface VariantImageRequest {
+  url: string;
+  alt_text?: string;
+  position?: number;
+}
 
 export interface Variant {
   uuid: string;
@@ -10,16 +16,18 @@ export interface Variant {
   option1: string;
   created_at: Date;
   updated_at: Date;
-  inventory_item?: InventoryItem;
-  images?: { uuid: string; url: string }[];
+  images?: { uuid: string; url: string; alt_text?: string; position?: number }[];
 }
 
 export interface VariantRequest {
+  productId?: string;
   uuid?: string;
   title: string;
   price: number;
   sku: string;
   inventory_policy: string;
   option1: string;
-  inventory_item: InventoryItemRequest;
+  available: number;
+  cost: number;
+  images?: VariantImageRequest[];
 }

@@ -3,6 +3,8 @@ import { Variant, VariantRequest } from "../variant/types";
 export interface ProductImage {
   uuid: string;
   url: string;
+  alt_text?: string;
+  position?: number;
 }
 
 export interface ProductResponse {
@@ -30,6 +32,12 @@ export interface PaginatedProductsResponse {
   };
 }
 
+export interface ProductImageRequest {
+  url: string;
+  alt_text?: string;
+  position?: number;
+}
+
 export interface ProductRequest {
   title: string;
   description: string;
@@ -38,4 +46,5 @@ export interface ProductRequest {
   tags: string[];
   status: string;
   variants: VariantRequest[];
+  images?: ProductImageRequest[];
 }

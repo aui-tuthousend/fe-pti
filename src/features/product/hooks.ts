@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { useCookies } from 'react-cookie';
+// import { useCookies } from 'react-cookie'; // Removed in favor of Session
+import { checkAuth } from '@/routes/login/-server';
 import { fetchServer } from '@/lib/fetchServer';
 import { urlBuilder } from "@/lib/utils";
 import type { ProductResponse, ProductRequest } from "./types";
@@ -24,7 +25,8 @@ interface ProductStore {
   CreateProduct: (token: string, payload: ProductRequest) => Promise<any>;
   UpdateProduct: (token: string, uuid: string, payload: Partial<ProductRequest>) => Promise<any>;
   DeleteProduct: (token: string, uuid: string) => Promise<any>;
-  UploadImage: (token: string, uuid: string, file: File) => Promise<any>;
+  UploadImage: (token: string, uuid: string, file: File, alt_text?: string, position?: number) => Promise<any>;
+  UploadFileAndGetUrl: (token: string, productUuid: string, file: File, alt_text?: string, position?: number) => Promise<{ url: string; alt_text?: string; position?: number }>;
   GetProductDetail: (uuid: string) => Promise<any>;
   GetListProduct: (token: string) => Promise<any>;
   GetPaginatedProducts: (token: string, page?: number, limit?: number) => Promise<any>;
@@ -118,6 +120,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   UpdateProduct: async (token, uuid, payload) => {
     set({ loading: true });
     try {
+      console.log('UpdateProduct Payload:', JSON.stringify(payload));
       const response = await fetchServer(token, urlBuilder(`/products/${uuid}`), {
         method: 'PATCH',
         body: JSON.stringify(payload),
@@ -160,11 +163,13 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
   },
 
-  UploadImage: async (token, uuid, file) => {
+  UploadImage: async (token, uuid, file, alt_text, position) => {
     set({ loading: true });
     try {
       const formData = new FormData();
-      formData.append('image', file); // Changed from 'file' to 'image' assuming backend expects 'image'
+      formData.append('image', file);
+      if (alt_text) formData.append('alt_text', alt_text);
+      if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
 
       const response = await fetch(urlBuilder(`/products/${uuid}/images/upload`), {
         method: 'POST',
@@ -188,6 +193,44 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       throw error;
     } finally {
       set({ loading: false });
+    }
+  },
+
+  // Helper function to upload file and get URL for payload
+  UploadFileAndGetUrl: async (token: string, productUuid: string, file: File, alt_text?: string, position?: number) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      if (alt_text) formData.append('alt_text', alt_text);
+      if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
+
+      const response = await fetch(urlBuilder(`/products/${productUuid}/images/upload`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(errorData.message || errorData.errors || `Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        url: data.data.url,
+        alt_text: data.data.alt_text,
+        position: data.data.position
+      };
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
     }
   },
 
@@ -290,42 +333,53 @@ export function useGetAllProduct() {
 }
 
 export function useCreateProduct() {
-  const [cookies] = useCookies(['authToken']);
   const { CreateProduct, loading } = useProductStore();
 
   return {
-    mutateAsync: (productData: ProductRequest) => CreateProduct(cookies.authToken || '', productData),
+    mutateAsync: async (productData: ProductRequest) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return CreateProduct(token, productData);
+    },
     isPending: loading,
   };
 }
 
 export function useUpdateProduct() {
-  const [cookies] = useCookies(['authToken']);
   const { UpdateProduct, loading } = useProductStore();
 
   return {
-    mutateAsync: (uuid: string, productData: Partial<ProductRequest>) =>
-      UpdateProduct(cookies.authToken || '', uuid, productData),
+    mutateAsync: async (uuid: string, productData: Partial<ProductRequest>) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return UpdateProduct(token, uuid, productData);
+    },
     isPending: loading,
   };
 }
 
 export function useDeleteProduct() {
-  const [cookies] = useCookies(['authToken']);
   const { DeleteProduct, loading } = useProductStore();
 
   return {
-    mutateAsync: (uuid: string) => DeleteProduct(cookies.authToken || '', uuid),
+    mutateAsync: async (uuid: string) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return DeleteProduct(token, uuid);
+    },
     isPending: loading,
   };
 }
 
 export function useUploadProductImage() {
-  const [cookies] = useCookies(['authToken']);
   const { UploadImage, loading } = useProductStore();
 
   return {
-    mutateAsync: (uuid: string, file: File) => UploadImage(cookies.authToken || '', uuid, file),
+    mutateAsync: async (uuid: string, file: File, alt_text?: string, position?: number) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return UploadImage(token, uuid, file, alt_text, position);
+    },
     isPending: loading,
   };
 }
@@ -352,7 +406,6 @@ export function useGetProductDetail(uuid: string) {
 }
 
 export function useGetInfiniteProducts(limit: number = 10) {
-  const [cookies] = useCookies(['authToken']);
   const { list, loading, pagination, GetPaginatedProducts } = useProductStore();
 
   return {
@@ -362,7 +415,7 @@ export function useGetInfiniteProducts(limit: number = 10) {
     },
     isLoading: loading,
     fetchNextPage: ({ pageParam = pagination.page + 1 }) =>
-      GetPaginatedProducts(cookies.authToken || '', pageParam, limit),
+      GetPaginatedProducts('', pageParam, limit), // No token needed for GET
     hasNextPage: pagination.page < pagination.totalPages,
   };
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { checkAuth } from '@/routes/login/-server';
 import { fetchServer } from '@/lib/fetchServer';
 import { urlBuilder } from "@/lib/utils";
 import type { Variant, VariantRequest } from "./types";
@@ -32,16 +33,18 @@ export const useVariantStore = create<VariantStore>((set, get) => ({
     updated_at: new Date(),
   },
   model: {
+    productId: "", // Added as it is required in Request
     uuid: "",
     title: "",
     price: 0,
     sku: "",
-    inventory_quantity: 0,
+    available: 0,
+    cost: 0,
     inventory_policy: "",
     option1: "",
     created_at: new Date(),
     updated_at: new Date(),
-  },
+  } as any, // Cast to any or partial because Variant/Request mismatch on some fields
   loading: false,
   tableAttributes: [
     {
@@ -81,7 +84,7 @@ export const useVariantStore = create<VariantStore>((set, get) => ({
   CreateVariant: async (token, payload) => {
     set({ loading: true });
     try {
-      const response = await fetchServer(token, urlBuilder('/variant'), {
+      const response = await fetchServer(token, urlBuilder('/variants'), {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -98,7 +101,7 @@ export const useVariantStore = create<VariantStore>((set, get) => ({
   GetListVariant: async (token) => {
     try {
       set({ loading: true });
-      const response = await fetchServer(token, urlBuilder('/variant'), {
+      const response = await fetchServer(token, urlBuilder('/variants'), {
         method: 'GET',
       });
 
@@ -123,7 +126,11 @@ export function useGetAllVariant() {
   return {
     data: list,
     isLoading: loading,
-    refetch: () => GetListVariant(localStorage.getItem('auth_token') || ''),
+    refetch: async () => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return GetListVariant(token);
+    },
   };
 }
 
@@ -131,7 +138,11 @@ export function useCreateVariant() {
   const { CreateVariant, loading } = useVariantStore();
 
   return {
-    mutateAsync: (variantData: VariantRequest) => CreateVariant(localStorage.getItem('auth_token') || '', variantData),
+    mutateAsync: async (variantData: VariantRequest) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return CreateVariant(token, variantData);
+    },
     isPending: loading,
   };
 }
