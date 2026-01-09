@@ -51,14 +51,18 @@ function RouteComponent() {
     setIsLoading(true)
     try {
       if (!auth.user) throw new Error('Unauthorized')
-      // Images are now included in the data payload
-      await CreateProduct(auth.user.token, data)
+      // Create product and return response for image uploads
+      const response = await CreateProduct(auth.user.token, data)
 
-      toast.success('Product created successfully!')
+      // Don't show success toast here - modal will handle it after image uploads
       setIsCreateModalOpen(false)
       GetPaginatedProducts('', currentPage, 10)
+
+      // Return response so modal can upload images
+      return response
     } catch (error: any) {
       toast.error(error?.message || 'Failed to create product')
+      throw error // Re-throw so modal knows creation failed
     } finally {
       setIsLoading(false)
     }
@@ -574,23 +578,113 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
 
       // Different workflow for CREATE vs UPDATE
       if (!product?.uuid) {
-        // CREATE: Submit product first WITHOUT images
+        // CREATE: Submit product first, then upload images seamlessly
         const cleanedVariants = formDataWithoutImages.variants.map(({ productId, ...variant }) => ({
           ...variant,
-          images: [] // No images for create
+          images: [] // No images in create payload
         }))
 
         const createPayload: ProductRequest = {
           ...formDataWithoutImages,
           tags,
-          images: [], // No images for create
+          images: [], // No images in create payload
           variants: cleanedVariants
         }
 
-        await onSubmit(createPayload)
+        try {
+          // Step 1: Create product
+          const response = await onSubmit(createPayload)
 
-        // Note: Images will need to be uploaded after product is created
-        // User needs to edit product to add images
+          // Response is double-nested: { data: { data: { uuid, ... } } }
+          const productData = response?.data?.data || response?.data
+
+          if (!productData?.uuid) {
+            console.error('Response structure:', JSON.stringify(response, null, 2))
+            throw new Error('Failed to get product UUID from response')
+          }
+
+          const newProductUuid = productData.uuid
+          const newVariants = productData.variants || []
+
+          // Step 2: Upload product images
+          if (pendingProductImages.length > 0) {
+            let successCount = 0
+            let failCount = 0
+
+            for (const img of pendingProductImages) {
+              try {
+                await UploadFileAndGetUrl(
+                  auth.user!.token,
+                  newProductUuid,
+                  img.file,
+                  img.alt_text,
+                  img.position
+                )
+                successCount++
+              } catch (error: any) {
+                console.error('Failed to upload product image:', error)
+                failCount++
+              }
+            }
+
+            if (successCount > 0) {
+              toast.success(`${successCount} product image(s) uploaded`)
+            }
+            if (failCount > 0) {
+              toast.warning(`${failCount} product image(s) failed to upload`)
+            }
+          }
+
+          // Step 3: Upload variant images
+          for (let variantIndex = 0; variantIndex < formData.variants.length; variantIndex++) {
+            const pendingImages = pendingVariantImages[variantIndex] || []
+            const variantUuid = newVariants[variantIndex]?.uuid
+
+            if (pendingImages.length > 0 && variantUuid) {
+              let successCount = 0
+              let failCount = 0
+
+              for (const img of pendingImages) {
+                try {
+                  await uploadVariantImage(
+                    auth.user!.token,
+                    variantUuid,
+                    img.file,
+                    img.alt_text,
+                    img.position
+                  )
+                  successCount++
+                } catch (error: any) {
+                  console.error('Failed to upload variant image:', error)
+                  failCount++
+                }
+              }
+
+              if (successCount > 0) {
+                toast.success(`${successCount} variant image(s) uploaded for ${formData.variants[variantIndex].title}`)
+              }
+              if (failCount > 0) {
+                toast.warning(`${failCount} variant image(s) failed to upload`)
+              }
+            }
+          }
+
+          // Step 4: Clear pending states
+          setPendingProductImages([])
+          setPendingVariantImages({})
+
+          // Step 5: Success
+          toast.success('Product created successfully!')
+
+          // Reload if callback provided
+          if (onReload) {
+            await onReload()
+          }
+
+        } catch (error: any) {
+          console.error('Create product error:', error)
+          toast.error(error?.message || 'Failed to create product')
+        }
 
       } else {
         // UPDATE: Delete marked images, upload pending images, then submit product
@@ -959,42 +1053,33 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                 </div>
               )}
 
-              {product?.uuid && (
-                <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 bg-white/50 dark:bg-gray-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleProductImageUpload}
-                    className="hidden"
-                    id="product-image-upload"
-                    disabled={isUploading}
-                  />
-                  <label
-                    htmlFor="product-image-upload"
-                    className="flex flex-col items-center cursor-pointer"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
-                      <Plus size={24} className="text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Click to upload product images
-                    </span>
-                    <span className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      PNG, JPG, GIF - Multiple files supported
-                    </span>
-                  </label>
-                </div>
-              )}
+              {/* Upload New Product Images */}
+              <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 bg-white/50 dark:bg-gray-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleProductImageUpload}
+                  className="hidden"
+                  id="product-image-upload"
+                  disabled={isUploading}
+                />
+                <label
+                  htmlFor="product-image-upload"
+                  className="flex flex-col items-center cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
+                    <Plus size={24} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Upload Product Images
+                  </span>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    PNG, JPG, GIF, WebP
+                  </span>
+                </label>
+              </div>
 
-              {!product?.uuid && (
-                <div className="bg-blue-100 dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 p-4 rounded-lg text-sm flex items-start gap-2">
-                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <span>💡 <strong>Note:</strong> Save the product first before you can upload images</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -1225,40 +1310,31 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                       </div>
                     )}
 
-                    {product?.uuid && (
-                      <div className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-md p-3 bg-white/50 dark:bg-gray-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={(e) => handleVariantImageUpload(index, e)}
-                          className="hidden"
-                          id={`variant-image-upload-${index}`}
-                          disabled={isUploading}
-                        />
-                        <label
-                          htmlFor={`variant-image-upload-${index}`}
-                          className="flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
-                            <Plus size={16} className="text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div className="text-left">
-                            <span className="text-xs font-medium text-purple-900 dark:text-purple-100 block">Upload Variant Images</span>
-                            <span className="text-xs text-purple-600 dark:text-purple-400">PNG, JPG, GIF</span>
-                          </div>
-                        </label>
-                      </div>
-                    )}
+                    {/* Upload new variant images */}
+                    <div className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-md p-3 bg-white/50 dark:bg-gray-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleVariantImageUpload(index, e)}
+                        className="hidden"
+                        id={`variant-image-upload-${index}`}
+                        disabled={isUploading}
+                      />
+                      <label
+                        htmlFor={`variant-image-upload-${index}`}
+                        className="flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                          <Plus size={16} className="text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-xs font-medium text-purple-900 dark:text-purple-100 block">Upload Variant Images</span>
+                          <span className="text-xs text-purple-600 dark:text-purple-400">PNG, JPG, GIF, WebP</span>
+                        </div>
+                      </label>
+                    </div>
 
-                    {!product?.uuid && (
-                      <div className="bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 p-2 rounded-md text-xs flex items-start gap-1.5">
-                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        <span>Save product first to upload variant images</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
