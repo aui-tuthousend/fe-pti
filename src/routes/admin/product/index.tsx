@@ -54,10 +54,7 @@ function RouteComponent() {
       // Create product and return response for image uploads
       const response = await CreateProduct(auth.user.token, data)
 
-      // Don't show success toast here - modal will handle it after image uploads
-      setIsCreateModalOpen(false)
-      GetPaginatedProducts('', currentPage, 10)
-
+      // Don't close modal or reload list here - modal will handle after image uploads
       // Return response so modal can upload images
       return response
     } catch (error: any) {
@@ -271,6 +268,10 @@ function RouteComponent() {
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleCreateProduct}
           isLoading={isLoading}
+          onReload={async () => {
+            setIsCreateModalOpen(false)
+            await GetPaginatedProducts('', currentPage, 10)
+          }}
         />
       )}
 
