@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { useProductStore } from '@/features/product/hooks'
+import { uploadVariantImage } from '@/features/variant/hooks'
 import type { ProductRequest } from '@/features/product/types'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, X } from 'lucide-react'
@@ -307,7 +308,8 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
     vendor: product?.vendor || '',
     tags: product?.tags || [],
     status: product?.status || 'draft',
-    images: product?.images?.map((img: any) => ({
+    // Filter to only show product-level images (variantId === null or undefined)
+    images: product?.images?.filter((img: any) => !img.variantId).map((img: any) => ({
       url: img.url,
       alt_text: img.alt_text,
       position: img.position
@@ -344,11 +346,17 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
   const { UploadFileAndGetUrl } = useProductStore()
   const [isUploading, setIsUploading] = useState(false)
 
+
   // Pending product images to upload
   const [pendingProductImages, setPendingProductImages] = useState<Array<{ file: File, alt_text?: string, position?: number }>>([])
 
   // Pending variant images to upload (indexed by variant index)
   const [pendingVariantImages, setPendingVariantImages] = useState<Record<number, Array<{ file: File, alt_text?: string, position?: number }>>>({})
+
+  // Images marked for deletion (will be deleted on submit)
+  const [pendingDeleteProductImages, setPendingDeleteProductImages] = useState<Array<{ uuid: string, url: string }>>([])
+  const [pendingDeleteVariantImages, setPendingDeleteVariantImages] = useState<Record<number, Array<{ uuid: string, url: string }>>>({})
+
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -406,61 +414,82 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
     setPendingProductImages(prev => [...prev, ...newPendingImages])
   }
 
-  const removeProductImage = async (index: number) => {
+  const removeProductImage = (index: number) => {
     const imageToRemove = formData.images?.[index]
-    console.log('Removing image at index:', index, 'Image:', imageToRemove)
+    console.log('Marking product image for deletion at index:', index, 'Image:', imageToRemove)
 
     if (!imageToRemove) return
 
-    // If we have product UUID and auth, try to delete from server
-    if (product?.uuid && auth.user?.token) {
-      try {
-        // Find the image UUID from the original product data
-        const originalImage = product.images?.find((img: any) => img.url === imageToRemove.url)
+    // Find the image UUID from the original product data
+    const originalImage = product?.images?.find((img: any) => img.url === imageToRemove.url)
 
-        if (originalImage && originalImage.uuid) {
-          console.log('Deleting image from server:', originalImage.uuid)
-          const response = await fetch(`${urlBuilder(`/products/${product.uuid}/images/${originalImage.uuid}`)}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${auth.user.token}`,
-              'Content-Type': 'application/json',
-            },
-          })
+    if (originalImage && originalImage.uuid) {
+      // Mark for deletion
+      setPendingDeleteProductImages(prev => [...prev, { uuid: originalImage.uuid, url: originalImage.url }])
+      toast.info('Image marked for deletion. Click "Update Product" to confirm.')
+    }
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || 'Failed to delete image from server')
-          }
+    // Remove from local state immediately for UI feedback
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.filter((_, i) => i !== index)
+    }))
+  }
 
-          toast.success('Image deleted successfully')
+  const undoDeleteProductImage = (index: number) => {
+    const imageToRestore = pendingDeleteProductImages[index]
+    if (!imageToRestore) return
 
-          // Reload product detail to get fresh data
-          if (onReload) {
-            await onReload()
-          }
-        } else {
-          console.log('Image UUID not found in original product data, just removing from UI')
-          // Still remove from UI even if not found on server
-          setFormData(prev => ({
-            ...prev,
-            images: prev.images?.filter((_, i) => i !== index)
-          }))
-        }
-      } catch (error: any) {
-        console.error('Error deleting image:', error)
-        toast.error(error.message || 'Failed to delete image')
-        return // Don't remove from UI if server delete failed
-      }
-    } else {
-      console.log('No product UUID or auth, just removing from UI')
-      // Remove from local state
+    // Find original image data
+    const originalImage = product?.images?.find((img: any) => img.url === imageToRestore.url)
+
+    if (originalImage) {
+      // Restore to formData
       setFormData(prev => ({
         ...prev,
-        images: prev.images?.filter((_, i) => i !== index)
+        images: [...(prev.images || []), {
+          url: originalImage.url,
+          alt_text: originalImage.alt_text,
+          position: originalImage.position
+        }]
       }))
     }
+
+    // Remove from pending delete
+    setPendingDeleteProductImages(prev => prev.filter((_, i) => i !== index))
+    toast.success('Image deletion cancelled')
   }
+
+  const undoDeleteVariantImage = (variantIndex: number, imageIndex: number) => {
+    const imageToRestore = pendingDeleteVariantImages[variantIndex]?.[imageIndex]
+    if (!imageToRestore) return
+
+    // Find original image data
+    const originalVariant = product?.variants?.find((v: any) => v.uuid === formData.variants[variantIndex].uuid)
+    const originalImage = originalVariant?.images?.find((img: any) => img.url === imageToRestore.url)
+
+    if (originalImage) {
+      // Restore to formData
+      const newVariants = [...formData.variants]
+      newVariants[variantIndex] = {
+        ...newVariants[variantIndex],
+        images: [...(newVariants[variantIndex].images || []), {
+          url: originalImage.url,
+          alt_text: originalImage.alt_text,
+          position: originalImage.position
+        }]
+      }
+      setFormData(prev => ({ ...prev, variants: newVariants }))
+    }
+
+    // Remove from pending delete
+    setPendingDeleteVariantImages(prev => ({
+      ...prev,
+      [variantIndex]: prev[variantIndex].filter((_, i) => i !== imageIndex)
+    }))
+    toast.success('Variant image deletion cancelled')
+  }
+
 
   const removePendingProductImage = (index: number) => {
     setPendingProductImages(prev => prev.filter((_, i) => i !== index))
@@ -470,13 +499,23 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
   const handleVariantImageUpload = (variantIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return
     const files = Array.from(e.target.files)
-    const variant = formData.variants[variantIndex]
-    const existingCount = (variant.images?.length || 0) + (pendingVariantImages[variantIndex]?.length || 0)
+
+    // Calculate total existing images across product and all variants
+    const productImagesCount = (formData.images?.length || 0) + pendingProductImages.length
+
+    let variantImagesCount = 0
+    formData.variants.forEach((v, idx) => {
+      variantImagesCount += (v.images?.length || 0)
+      variantImagesCount += (pendingVariantImages[idx]?.length || 0)
+    })
+
+    const totalExistingImages = productImagesCount + variantImagesCount
+    const startPosition = totalExistingImages + 1
 
     const newPendingImages = files.map((file, idx) => ({
       file,
       alt_text: '',
-      position: existingCount + idx + 1
+      position: startPosition + idx
     }))
 
     setPendingVariantImages(prev => ({
@@ -486,6 +525,26 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
   }
 
   const removeVariantImage = (variantIndex: number, imageIndex: number) => {
+    const variant = formData.variants[variantIndex]
+    const imageToRemove = variant.images?.[imageIndex]
+    console.log('Marking variant image for deletion at index:', imageIndex, 'from variant:', variant.title, 'Image:', imageToRemove)
+
+    if (!imageToRemove) return
+
+    // Find the image UUID from the original product data
+    const originalVariant = product?.variants?.find((v: any) => v.uuid === variant.uuid)
+    const originalImage = originalVariant?.images?.find((img: any) => img.url === imageToRemove.url)
+
+    if (originalImage && originalImage.uuid) {
+      // Mark for deletion
+      setPendingDeleteVariantImages(prev => ({
+        ...prev,
+        [variantIndex]: [...(prev[variantIndex] || []), { uuid: originalImage.uuid, url: originalImage.url }]
+      }))
+      toast.info('Variant image marked for deletion. Click "Update Product" to confirm.')
+    }
+
+    // Remove from local state immediately for UI feedback
     const newVariants = [...formData.variants]
     newVariants[variantIndex] = {
       ...newVariants[variantIndex],
@@ -501,8 +560,8 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     setIsUploading(true)
 
     try {
@@ -515,7 +574,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
 
       // Different workflow for CREATE vs UPDATE
       if (!product?.uuid) {
-        // CREATE: Submit product first WITHOUT images, then upload images
+        // CREATE: Submit product first WITHOUT images
         const cleanedVariants = formDataWithoutImages.variants.map(({ productId, ...variant }) => ({
           ...variant,
           images: [] // No images for create
@@ -531,31 +590,97 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
         await onSubmit(createPayload)
 
         // Note: Images will need to be uploaded after product is created
-        // This would require a callback from onSubmit with the new UUID
-        // For now, user needs to edit product to add images
+        // User needs to edit product to add images
 
       } else {
-        // UPDATE: Upload images first, then submit with URLs
+        // UPDATE: Delete marked images, upload pending images, then submit product
 
-        // 1. Upload all pending product images and get URLs
-        const uploadedProductImages = await Promise.all(
-          pendingProductImages.map(async (img) => {
+        // 0. Delete marked product images
+        if (pendingDeleteProductImages.length > 0) {
+          let successCount = 0
+          let failCount = 0
+
+          for (const img of pendingDeleteProductImages) {
             try {
-              return await UploadFileAndGetUrl(auth.user!.token, product.uuid, img.file, img.alt_text, img.position)
+              const response = await fetch(`${urlBuilder(`/products/${product.uuid}/images/${img.uuid}`)}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${auth.user!.token}`,
+                  'Content-Type': 'application/json',
+                },
+              })
+
+              if (!response.ok) {
+                throw new Error('Failed to delete image')
+              }
+              successCount++
             } catch (error: any) {
-              console.error('Failed to upload product image:', img.file.name, error)
-              toast.error(`Failed to upload ${img.file.name}: ${error.message}`)
-              return null
+              console.error('Failed to delete product image:', error)
+              failCount++
             }
-          })
-        )
+          }
 
-        // Filter out failed uploads
-        const validProductImages = uploadedProductImages.filter((img): img is { url: string, alt_text?: string, position?: number } => img !== null)
+          if (successCount > 0) {
+            toast.success(`${successCount} product image(s) deleted`)
+          }
+          if (failCount > 0) {
+            toast.warning(`${failCount} product image(s) failed to delete`)
+          }
+        }
 
+        // 0b. Delete marked variant images
+        for (let variantIndex = 0; variantIndex < formData.variants.length; variantIndex++) {
+          const variant = formData.variants[variantIndex]
+          const pendingDeletes = pendingDeleteVariantImages[variantIndex] || []
+
+          if (pendingDeletes.length > 0 && variant.uuid) {
+            let successCount = 0
+            let failCount = 0
+
+            for (const img of pendingDeletes) {
+              try {
+                const response = await fetch(`${urlBuilder(`/variants/${variant.uuid}/images/${img.uuid}`)}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${auth.user!.token}`,
+                    'Content-Type': 'application/json',
+                  },
+                })
+
+                if (!response.ok) {
+                  throw new Error('Failed to delete variant image')
+                }
+                successCount++
+              } catch (error: any) {
+                console.error('Failed to delete variant image:', error)
+                failCount++
+              }
+            }
+
+            if (successCount > 0) {
+              toast.success(`${successCount} variant image(s) deleted from ${variant.title}`)
+            }
+            if (failCount > 0) {
+              toast.warning(`${failCount} variant image(s) failed to delete`)
+            }
+          }
+        }
+
+        // 1. Upload pending product images (one by one)
         if (pendingProductImages.length > 0) {
-          const successCount = validProductImages.length
-          const failCount = pendingProductImages.length - successCount
+          let successCount = 0
+          let failCount = 0
+
+          for (const img of pendingProductImages) {
+            try {
+              await UploadFileAndGetUrl(auth.user!.token, product.uuid, img.file, img.alt_text, img.position)
+              successCount++
+            } catch (error: any) {
+              console.error('Failed to upload product image:', error)
+              failCount++
+            }
+          }
+
           if (successCount > 0) {
             toast.success(`${successCount} product image(s) uploaded successfully`)
           }
@@ -564,41 +689,47 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
           }
         }
 
-        // 2. Upload all pending variant images
-        const variantsWithUploadedImages = await Promise.all(
-          formData.variants.map(async (variant, index) => {
-            const pendingImages = pendingVariantImages[index] || []
-            if (pendingImages.length > 0) {
-              const uploadedImages = await Promise.all(
-                pendingImages.map(async (img) => {
-                  try {
-                    return await UploadFileAndGetUrl(auth.user!.token, product.uuid, img.file, img.alt_text, img.position)
-                  } catch (error) {
-                    console.error('Failed to upload variant image:', error)
-                    return null
-                  }
-                })
-              )
-              const validImages = uploadedImages.filter((img): img is { url: string, alt_text?: string, position?: number } => img !== null)
-              return {
-                ...variant,
-                images: [...(variant.images || []), ...validImages]
+        // 2. Upload pending variant images (one by one)
+        for (let variantIndex = 0; variantIndex < formData.variants.length; variantIndex++) {
+          const pendingImages = pendingVariantImages[variantIndex] || []
+
+          if (pendingImages.length > 0) {
+            let successCount = 0
+            let failCount = 0
+
+            for (const img of pendingImages) {
+              try {
+                // Upload to variant-specific endpoint
+                const variant = formData.variants[variantIndex]
+                if (variant.uuid) {
+                  await uploadVariantImage(auth.user!.token, variant.uuid, img.file, img.alt_text, img.position)
+                }
+                successCount++
+              } catch (error: any) {
+                console.error('Failed to upload variant image:', error)
+                failCount++
               }
             }
-            return variant
-          })
-        )
 
-        // 3. Build final payload
-        // Clean up variants - remove productId field for update
-        const cleanedVariants = variantsWithUploadedImages.map(({ productId, ...variant }) => variant)
+            if (successCount > 0) {
+              toast.success(`${successCount} variant image(s) uploaded for ${formData.variants[variantIndex].title}`)
+            }
+            if (failCount > 0) {
+              toast.warning(`${failCount} variant image(s) failed to upload`)
+            }
+          }
+        }
+
+        // 3. Build payload WITHOUT images field
+        const cleanedVariants = formData.variants.map(({ productId, images, ...variant }) => ({
+          ...variant
+          // Don't include images in variant payload either
+        }))
 
         const payload: ProductRequest = {
           ...formDataWithoutImages,
           tags,
-          // For update: Only send newly uploaded images, not existing ones
-          // Existing images are already in the database
-          images: validProductImages.length > 0 ? validProductImages : undefined,
+          // Don't include images field at all
           variants: cleanedVariants
         }
 
@@ -608,6 +739,9 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
         // 5. Clear pending images and reload to get fresh data
         setPendingProductImages([])
         setPendingVariantImages({})
+        setPendingDeleteProductImages([])
+        setPendingDeleteVariantImages({})
+
 
         if (onReload) {
           await onReload()
@@ -718,96 +852,150 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
 
           {/* Product Images Section */}
           <div className="space-y-4 border-t pt-6">
-            <h3 className="text-lg font-semibold">Product Images</h3>
-
-            {/* Existing Images */}
-            {formData.images && formData.images.length > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2">Current Images</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={getImageUrl(img.url) || ''}
-                        alt={img.alt_text || 'Product'}
-                        className="w-full h-24 object-cover rounded-md border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeProductImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-                      <div className="text-xs text-center mt-1 text-muted-foreground">
-                        Pos: {img.position || index + 1}
-                      </div>
-                    </div>
-                  ))}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Product Images</h3>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">Main images for this product</p>
                 </div>
               </div>
-            )}
 
-            {/* Pending Images */}
-            {pendingProductImages.length > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2">Pending Upload ({pendingProductImages.length})</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {pendingProductImages.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={URL.createObjectURL(img.file)}
-                        alt="Pending"
-                        className="w-full h-24 object-cover rounded-md border border-amber-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePendingProductImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                      >
-                        <X size={14} />
-                      </button>
-                      <div className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded">
-                        New
+              {/* Existing Images */}
+              {formData.images && formData.images.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">Current Images ({formData.images.length})</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={getImageUrl(img.url) || ''}
+                          alt={img.alt_text || 'Product'}
+                          className="w-full h-28 object-cover rounded-lg border-2 border-blue-300 dark:border-blue-700 shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeProductImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all shadow-lg z-10"
+                        >
+                          <X size={14} />
+                        </button>
+                        <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md shadow font-semibold">
+                          PRODUCT
+                        </div>
+                        <div className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-md shadow">
+                          #{img.position || index + 1}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Upload New Images */}
-            {product?.uuid && (
-              <div className="border-2 border-dashed rounded-lg p-4">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleProductImageUpload}
-                  className="hidden"
-                  id="product-image-upload"
-                  disabled={isUploading}
-                />
-                <label
-                  htmlFor="product-image-upload"
-                  className="flex flex-col items-center cursor-pointer"
-                >
-                  <Plus size={24} className="text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">
-                    Click to upload product images
-                  </span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG, GIF - Multiple files supported
-                  </span>
-                </label>
-              </div>
-            )}
+              {/* Pending Images */}
+              {pendingProductImages.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2 text-amber-800 dark:text-amber-200">Pending Upload ({pendingProductImages.length})</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {pendingProductImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={URL.createObjectURL(img.file)}
+                          alt="Pending"
+                          className="w-full h-28 object-cover rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-600 shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePendingProductImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg z-10"
+                        >
+                          <X size={14} />
+                        </button>
+                        <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md shadow font-semibold">
+                          PRODUCT
+                        </div>
+                        <div className="absolute top-1 right-1 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-md shadow font-medium">
+                          NEW
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {!product?.uuid && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 p-3 rounded-md text-sm">
-                💡 Save the product first to upload images
-              </div>
-            )}
+              {/* Pending Delete Images */}
+              {pendingDeleteProductImages.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2 text-red-800 dark:text-red-200">Pending Deletion ({pendingDeleteProductImages.length})</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {pendingDeleteProductImages.map((img, index) => (
+                      <div key={index} className="relative group opacity-60">
+                        <img
+                          src={getImageUrl(img.url) || ''}
+                          alt="Pending Delete"
+                          className="w-full h-28 object-cover rounded-lg border-2 border-dashed border-red-400 dark:border-red-600 shadow-sm grayscale"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => undoDeleteProductImage(index)}
+                          className="absolute -top-2 -right-2 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1.5 shadow-lg z-10"
+                          title="Undo delete"
+                        >
+                          <X size={14} />
+                        </button>
+                        <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md shadow font-semibold">
+                          PRODUCT
+                        </div>
+                        <div className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-md shadow font-medium">
+                          DELETE
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product?.uuid && (
+                <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 bg-white/50 dark:bg-gray-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleProductImageUpload}
+                    className="hidden"
+                    id="product-image-upload"
+                    disabled={isUploading}
+                  />
+                  <label
+                    htmlFor="product-image-upload"
+                    className="flex flex-col items-center cursor-pointer"
+                  >
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-2">
+                      <Plus size={24} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Click to upload product images
+                    </span>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      PNG, JPG, GIF - Multiple files supported
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {!product?.uuid && (
+                <div className="bg-blue-100 dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 p-4 rounded-lg text-sm flex items-start gap-2">
+                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span>💡 <strong>Note:</strong> Save the product first before you can upload images</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Variants */}
@@ -933,88 +1121,145 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
 
                 {/* Variant Images */}
                 <div className="border-t pt-3 mt-3">
-                  <h5 className="text-sm font-medium mb-2">Variant Images</h5>
-
-                  {/* Existing variant images */}
-                  {variant.images && variant.images.length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-xs text-muted-foreground mb-1">Current Images</p>
-                      <div className="flex flex-wrap gap-2">
-                        {variant.images.map((img, imgIndex) => (
-                          <div key={imgIndex} className="relative group">
-                            <img
-                              src={getImageUrl(img.url) || ''}
-                              alt={img.alt_text || 'Variant'}
-                              className="w-16 h-16 object-cover rounded border"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeVariantImage(index, imgIndex)}
-                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 bg-purple-500 rounded-md flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-semibold text-purple-900 dark:text-purple-100">Variant Images</h5>
+                        <p className="text-xs text-purple-700 dark:text-purple-300">Images specific to this variant</p>
                       </div>
                     </div>
-                  )}
 
-                  {/* Pending variant images */}
-                  {pendingVariantImages[index] && pendingVariantImages[index].length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-xs text-muted-foreground mb-1">Pending Upload</p>
-                      <div className="flex flex-wrap gap-2">
-                        {pendingVariantImages[index].map((img, imgIndex) => (
-                          <div key={imgIndex} className="relative">
-                            <img
-                              src={URL.createObjectURL(img.file)}
-                              alt="Pending"
-                              className="w-16 h-16 object-cover rounded border border-amber-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removePendingVariantImage(index, imgIndex)}
-                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
-                            >
-                              <X size={12} />
-                            </button>
-                            <div className="absolute top-0 left-0 bg-amber-500 text-white text-[10px] px-1 rounded-br">
-                              New
+                    {/* Existing variant images */}
+                    {variant.images && variant.images.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium mb-2 text-purple-800 dark:text-purple-200">Current Images ({variant.images.length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {variant.images.map((img, imgIndex) => (
+                            <div key={imgIndex} className="relative group">
+                              <img
+                                src={getImageUrl(img.url) || ''}
+                                alt={img.alt_text || 'Variant'}
+                                className="w-20 h-20 object-cover rounded-md border-2 border-purple-300 dark:border-purple-700 shadow-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeVariantImage(index, imgIndex)}
+                                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                              >
+                                <X size={12} />
+                              </button>
+                              <div className="absolute top-0.5 left-0.5 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-semibold max-w-[70px] truncate">
+                                {variant.title || `Variant ${index + 1}`}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Upload new variant images */}
-                  {product?.uuid && (
-                    <div>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => handleVariantImageUpload(index, e)}
-                        className="hidden"
-                        id={`variant-image-upload-${index}`}
-                        disabled={isUploading}
-                      />
-                      <label
-                        htmlFor={`variant-image-upload-${index}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border rounded cursor-pointer hover:bg-muted transition-colors"
-                      >
-                        <Plus size={14} />
-                        Upload Images
-                      </label>
-                    </div>
-                  )}
+                    {/* Pending variant images */}
+                    {pendingVariantImages[index] && pendingVariantImages[index].length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium mb-2 text-amber-800 dark:text-amber-200">Pending Upload ({pendingVariantImages[index].length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {pendingVariantImages[index].map((img, imgIndex) => (
+                            <div key={imgIndex} className="relative group">
+                              <img
+                                src={URL.createObjectURL(img.file)}
+                                alt="Pending"
+                                className="w-20 h-20 object-cover rounded-md border-2 border-dashed border-amber-400 dark:border-amber-600 shadow-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removePendingVariantImage(index, imgIndex)}
+                                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md z-10"
+                              >
+                                <X size={12} />
+                              </button>
+                              <div className="absolute top-0.5 left-0.5 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-semibold max-w-[70px] truncate">
+                                {variant.title || `Variant ${index + 1}`}
+                              </div>
+                              <div className="absolute top-0.5 right-0.5 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-medium">
+                                NEW
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  {!product?.uuid && (
-                    <p className="text-xs text-muted-foreground italic">
-                      Save the product first to upload variant images
-                    </p>
-                  )}
+                    {/* Pending delete variant images */}
+                    {pendingDeleteVariantImages[index] && pendingDeleteVariantImages[index].length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium mb-2 text-red-800 dark:text-red-200">Pending Deletion ({pendingDeleteVariantImages[index].length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {pendingDeleteVariantImages[index].map((img, imgIndex) => (
+                            <div key={imgIndex} className="relative group opacity-60">
+                              <img
+                                src={getImageUrl(img.url) || ''}
+                                alt="Pending Delete"
+                                className="w-20 h-20 object-cover rounded-md border-2 border-dashed border-red-400 dark:border-red-600 shadow-sm grayscale"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => undoDeleteVariantImage(index, imgIndex)}
+                                className="absolute -top-1 -right-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 shadow-md z-10"
+                                title="Undo delete"
+                              >
+                                <X size={12} />
+                              </button>
+                              <div className="absolute top-0.5 left-0.5 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-semibold max-w-[70px] truncate">
+                                {variant.title || `Variant ${index + 1}`}
+                              </div>
+                              <div className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-medium">
+                                DELETE
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product?.uuid && (
+                      <div className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-md p-3 bg-white/50 dark:bg-gray-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={(e) => handleVariantImageUpload(index, e)}
+                          className="hidden"
+                          id={`variant-image-upload-${index}`}
+                          disabled={isUploading}
+                        />
+                        <label
+                          htmlFor={`variant-image-upload-${index}`}
+                          className="flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                            <Plus size={16} className="text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div className="text-left">
+                            <span className="text-xs font-medium text-purple-900 dark:text-purple-100 block">Upload Variant Images</span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400">PNG, JPG, GIF</span>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {!product?.uuid && (
+                      <div className="bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 p-2 rounded-md text-xs flex items-start gap-1.5">
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <span>Save product first to upload variant images</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

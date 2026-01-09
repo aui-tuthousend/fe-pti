@@ -126,10 +126,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         body: JSON.stringify(payload),
       });
 
+      console.log('UpdateProduct Response:', response);
+
       // Update the product in the list if it exists
       const currentList = get().list;
-      const updatedList = currentList.map(product =>
-        product.uuid === uuid ? { ...product, ...response.data } : product
+      const updatedList = currentList.map(p =>
+        p.uuid === uuid ? { ...p, ...response.data } : p
       );
       set({ list: updatedList });
 

@@ -134,6 +134,50 @@ export function useGetAllVariant() {
   };
 }
 
+// Helper function to upload variant image
+export async function uploadVariantImage(
+  token: string,
+  variantUuid: string,
+  file: File,
+  alt_text?: string,
+  position?: number
+): Promise<{ url: string; alt_text?: string; position?: number }> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (alt_text) formData.append('alt_text', alt_text);
+    if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
+
+    const response = await fetch(urlBuilder(`/variants/${variantUuid}/images/upload`), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Variant image upload failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      throw new Error(errorData.message || errorData.errors || `Upload failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      url: data.data.url,
+      alt_text: data.data.alt_text,
+      position: data.data.position,
+    };
+  } catch (error) {
+    console.error('Error uploading variant image:', error);
+    throw error;
+  }
+}
+
 export function useCreateVariant() {
   const { CreateVariant, loading } = useVariantStore();
 
