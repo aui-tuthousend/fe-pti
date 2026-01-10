@@ -171,7 +171,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       const formData = new FormData();
       formData.append('image', file);
       if (alt_text) formData.append('alt_text', alt_text);
-      if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
+      // Don't send position - backend calculates it automatically
+      // if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
 
       const response = await fetch(urlBuilder(`/products/${uuid}/images/upload`), {
         method: 'POST',
