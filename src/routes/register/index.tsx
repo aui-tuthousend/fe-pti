@@ -18,7 +18,7 @@ function RouteComponent() {
     email: '',
     phone: '',
     password: '',
-    role: 'user',
+    role: 'admin',
   })
 
   const [errors, setErrors] = useState({

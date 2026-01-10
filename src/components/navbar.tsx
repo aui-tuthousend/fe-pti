@@ -46,7 +46,7 @@ export function Navbar() {
 
   const handleLogin = () => {
     setIsDropdownOpen(false)
-    navigate({ to: '/auth/login' })
+    navigate({ to: '/login' })
   }
 
   const handleLogout = () => {
@@ -252,7 +252,7 @@ export function Navbar() {
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
-                            navigate({ to: '/auth/register' })
+                            navigate({ to: '/register' })
                           }}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
                         >
