@@ -29,7 +29,7 @@ interface ProductStore {
   UploadFileAndGetUrl: (token: string, productUuid: string, file: File, alt_text?: string, position?: number) => Promise<{ url: string; alt_text?: string; position?: number }>;
   GetProductDetail: (uuid: string) => Promise<any>;
   GetListProduct: (token: string) => Promise<any>;
-  GetPaginatedProducts: (token: string, page?: number, limit?: number) => Promise<any>;
+  GetPaginatedProducts: (search?: string, page?: number, limit?: number) => Promise<any>;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
@@ -287,11 +287,21 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
   },
 
-  GetPaginatedProducts: async (token, page = 1, limit = 10) => {
+  GetPaginatedProducts: async (search = '', page = 1, limit = 10) => {
     try {
       set({ loading: true });
+      // Build query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      if (search) {
+        params.append('search', search);
+      }
+
       // GET requests don't need authentication for products
-      const response = await fetch(`${urlBuilder('/products')}?page=${page}&limit=${limit}`, {
+      const response = await fetch(`${urlBuilder('/products')}?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

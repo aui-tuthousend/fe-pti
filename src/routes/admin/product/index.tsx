@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import ProductTable from '@/components/admin/product/ProductTable'
 import ProductFormModal from '@/components/admin/product/ProductFormModal'
+import ProductSearchFilter from '@/components/admin/product/ProductSearchFilter'
 
 export const Route = createFileRoute('/admin/product/')({
   component: RouteComponent,
@@ -32,21 +33,50 @@ function RouteComponent() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetchingDetail, setIsFetchingDetail] = useState(false)
 
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [productTypeFilter, setProductTypeFilter] = useState('')
+
   // Store auth in window for ProductFormModal to access
   // This is a workaround - ideally we'd use React Context
   useEffect(() => {
     (window as any).__routeContext = { auth }
   }, [auth])
 
-  // Load products on mount
+  // Load products on mount and when search query changes
   useEffect(() => {
+    // Load all products without search parameter (backend might not support it yet)
     GetPaginatedProducts('', 1, 10)
+    setCurrentPage(1)
   }, [])
+
+  // Client-side filtering for search, status and product type
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = !searchQuery ||
+      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.vendor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.product_type?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = !statusFilter || product.status === statusFilter
+    const matchesType = !productTypeFilter || product.product_type.toLowerCase().includes(productTypeFilter.toLowerCase())
+
+    return matchesSearch && matchesStatus && matchesType
+  })
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    GetPaginatedProducts('', page, 10)
+    GetPaginatedProducts(searchQuery, page, 10)
   }
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setStatusFilter('')
+    setProductTypeFilter('')
+  }
+
+  const hasActiveFilters = searchQuery !== '' || statusFilter !== '' || productTypeFilter !== ''
 
   const handleEditProduct = async (uuid: string) => {
     setIsFetchingDetail(true)
@@ -122,9 +152,21 @@ function RouteComponent() {
         </Button>
       </div>
 
+      {/* Search and Filter */}
+      <ProductSearchFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        productTypeFilter={productTypeFilter}
+        onProductTypeFilterChange={setProductTypeFilter}
+        onClearFilters={handleClearFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+
       {/* Product Table */}
       <ProductTable
-        products={products}
+        products={filteredProducts}
         loading={storeLoading}
         pagination={pagination}
         onEdit={handleEditProduct}
