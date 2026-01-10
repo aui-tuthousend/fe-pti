@@ -352,11 +352,11 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
   const [isUploading, setIsUploading] = useState(false)
 
 
-  // Pending product images to upload
-  const [pendingProductImages, setPendingProductImages] = useState<Array<{ file: File, alt_text?: string, position?: number }>>([])
+  // Pending product images to upload (position auto-calculated by backend)
+  const [pendingProductImages, setPendingProductImages] = useState<Array<{ file: File, alt_text?: string }>>([])
 
-  // Pending variant images to upload (indexed by variant index)
-  const [pendingVariantImages, setPendingVariantImages] = useState<Record<number, Array<{ file: File, alt_text?: string, position?: number }>>>({})
+  // Pending variant images to upload (indexed by variant index, position auto-calculated by backend)
+  const [pendingVariantImages, setPendingVariantImages] = useState<Record<number, Array<{ file: File, alt_text?: string }>>>({})
 
   // Images marked for deletion (will be deleted on submit)
   const [pendingDeleteProductImages, setPendingDeleteProductImages] = useState<Array<{ uuid: string, url: string }>>([])
@@ -406,15 +406,11 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
     if (!e.target.files?.length) return
     const files = Array.from(e.target.files)
 
-    // Calculate starting position based on existing + pending images
-    const existingCount = (formData.images?.length || 0)
-    const pendingCount = pendingProductImages.length
-    const startPosition = existingCount + pendingCount + 1
-
-    const newPendingImages = files.map((file, idx) => ({
+    // Backend auto-calculates position, so we don't need to calculate it here
+    const newPendingImages = files.map((file) => ({
       file,
       alt_text: '',
-      position: startPosition + idx
+      // position will be auto-calculated by backend
     }))
     setPendingProductImages(prev => [...prev, ...newPendingImages])
   }
@@ -505,22 +501,11 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
     if (!e.target.files?.length) return
     const files = Array.from(e.target.files)
 
-    // Calculate total existing images across product and all variants
-    const productImagesCount = (formData.images?.length || 0) + pendingProductImages.length
-
-    let variantImagesCount = 0
-    formData.variants.forEach((v, idx) => {
-      variantImagesCount += (v.images?.length || 0)
-      variantImagesCount += (pendingVariantImages[idx]?.length || 0)
-    })
-
-    const totalExistingImages = productImagesCount + variantImagesCount
-    const startPosition = totalExistingImages + 1
-
-    const newPendingImages = files.map((file, idx) => ({
+    // Backend auto-calculates position, so we don't need to calculate it here
+    const newPendingImages = files.map((file) => ({
       file,
       alt_text: '',
-      position: startPosition + idx
+      // position will be auto-calculated by backend
     }))
 
     setPendingVariantImages(prev => ({
@@ -619,7 +604,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                   newProductUuid,
                   img.file,
                   img.alt_text,
-                  img.position
+                  undefined // Backend auto-calculates position
                 )
                 successCount++
               } catch (error: any) {
@@ -652,7 +637,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                     variantUuid,
                     img.file,
                     img.alt_text,
-                    img.position
+                    undefined // Backend auto-calculates position
                   )
                   successCount++
                 } catch (error: any) {
@@ -768,7 +753,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
 
           for (const img of pendingProductImages) {
             try {
-              await UploadFileAndGetUrl(auth.user!.token, product.uuid, img.file, img.alt_text, img.position)
+              await UploadFileAndGetUrl(auth.user!.token, product.uuid, img.file, img.alt_text, undefined) // Backend auto-calculates position
               successCount++
             } catch (error: any) {
               console.error('Failed to upload product image:', error)
@@ -797,7 +782,7 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                 // Upload to variant-specific endpoint
                 const variant = formData.variants[variantIndex]
                 if (variant.uuid) {
-                  await uploadVariantImage(auth.user!.token, variant.uuid, img.file, img.alt_text, img.position)
+                  await uploadVariantImage(auth.user!.token, variant.uuid, img.file, img.alt_text, undefined) // Backend auto-calculates position
                 }
                 successCount++
               } catch (error: any) {
@@ -979,12 +964,81 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                         >
                           <X size={14} />
                         </button>
+
+                        {/* Set as Featured Button */}
+                        {index !== 0 && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                // Move this image to position 1 (index 0)
+                                const newImages = [...formData.images!]
+                                const [movedImage] = newImages.splice(index, 1)
+                                newImages.unshift(movedImage)
+
+                                // Update positions
+                                const updatedImages = newImages.map((img, idx) => ({
+                                  ...img,
+                                  position: idx + 1
+                                }))
+
+                                // Update local state
+                                setFormData(prev => ({ ...prev, images: updatedImages }))
+
+                                // If product exists, update backend
+                                if (product?.uuid && auth.user?.token) {
+                                  // Update product with new image order
+                                  await UpdateProduct(auth.user.token, product.uuid, {
+                                    images: updatedImages.map(img => ({
+                                      url: img.url,
+                                      alt_text: img.alt_text,
+                                      position: img.position
+                                    }))
+                                  })
+
+                                  toast.success('Featured image updated')
+
+                                  // Reload to get fresh data
+                                  if (onReload) {
+                                    await onReload()
+                                  }
+                                } else {
+                                  toast.success('Set as featured image')
+                                }
+                              } catch (error: any) {
+                                console.error('Error setting featured image:', error)
+                                toast.error('Failed to set featured image')
+                              }
+                            }}
+                            className="absolute -top-2 -left-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all shadow-lg z-10"
+                            title="Set as featured image"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          </button>
+                        )}
+
                         <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md shadow font-semibold">
                           PRODUCT
                         </div>
-                        <div className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-md shadow">
-                          #{img.position || index + 1}
-                        </div>
+
+                        {/* Featured Badge */}
+                        {index === 0 && (
+                          <div className="absolute top-1 right-1 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-md shadow font-semibold flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            FEATURED
+                          </div>
+                        )}
+
+                        {/* Position Badge */}
+                        {index !== 0 && (
+                          <div className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-md shadow">
+                            #{img.position || index + 1}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1239,9 +1293,90 @@ function ProductFormModal({ title, product, onClose, onSubmit, isLoading, onRelo
                               >
                                 <X size={12} />
                               </button>
+
+                              {/* Set as Featured Button */}
+                              {imgIndex !== 0 && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      // Move this image to position 1 (index 0)
+                                      const newVariants = [...formData.variants]
+                                      const newImages = [...newVariants[index].images!]
+                                      const [movedImage] = newImages.splice(imgIndex, 1)
+                                      newImages.unshift(movedImage)
+
+                                      // Update positions
+                                      const updatedImages = newImages.map((img, idx) => ({
+                                        ...img,
+                                        position: idx + 1
+                                      }))
+
+                                      newVariants[index] = {
+                                        ...newVariants[index],
+                                        images: updatedImages
+                                      }
+
+                                      // Update local state
+                                      setFormData(prev => ({ ...prev, variants: newVariants }))
+
+                                      // If product exists, update backend
+                                      if (product?.uuid && auth.user?.token) {
+                                        // Update product with new variant image order
+                                        await UpdateProduct(auth.user.token, product.uuid, {
+                                          variants: newVariants.map(v => ({
+                                            uuid: v.uuid,
+                                            title: v.title,
+                                            price: v.price,
+                                            sku: v.sku,
+                                            inventory_policy: v.inventory_policy,
+                                            option1: v.option1,
+                                            available: v.available,
+                                            cost: v.cost,
+                                            images: v.images?.map(img => ({
+                                              url: img.url,
+                                              alt_text: img.alt_text,
+                                              position: img.position
+                                            }))
+                                          }))
+                                        })
+
+                                        toast.success('Featured variant image updated')
+
+                                        // Reload to get fresh data
+                                        if (onReload) {
+                                          await onReload()
+                                        }
+                                      } else {
+                                        toast.success('Set as featured variant image')
+                                      }
+                                    } catch (error: any) {
+                                      console.error('Error setting featured variant image:', error)
+                                      toast.error('Failed to set featured variant image')
+                                    }
+                                  }}
+                                  className="absolute -top-1 -left-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                                  title="Set as featured image"
+                                >
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                </button>
+                              )}
+
                               <div className="absolute top-0.5 left-0.5 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-semibold max-w-[70px] truncate">
                                 {variant.title || `Variant ${index + 1}`}
                               </div>
+
+                              {/* Featured Badge */}
+                              {imgIndex === 0 && (
+                                <div className="absolute top-0.5 right-0.5 bg-yellow-500 text-white text-[10px] px-1.5 py-0.5 rounded shadow font-semibold flex items-center gap-0.5">
+                                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                  FEATURED
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
