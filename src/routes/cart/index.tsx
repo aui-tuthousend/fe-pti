@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Gift, X } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
+import { Footer } from '@/components/Footer'
 // import { SuccessAlert } from '@/components/ui/SuccesAlert'
 
 export const Route = createFileRoute('/cart/')({
@@ -14,7 +15,7 @@ function RouteComponent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [promoCode, setPromoCode] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null)
-  const [selectedItems, setSelectedItems] = useState<number[]>([1, 2, 3,4]) // Default semua item dipilih
+  const [selectedItems, setSelectedItems] = useState<number[]>([1, 2, 3, 4]) // Default semua item dipilih
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
   const [showMobileSummary, setShowMobileSummary] = useState(false)
 
@@ -91,8 +92,8 @@ function RouteComponent() {
 
   // Fungsi untuk toggle select item
   const toggleSelectItem = (id: number) => {
-    setSelectedItems(prev => 
-      prev.includes(id) 
+    setSelectedItems(prev =>
+      prev.includes(id)
         ? prev.filter(itemId => itemId !== id)
         : [...prev, id]
     )
@@ -170,7 +171,7 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar/>
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header - Modern Design */}
         <div className="mb-8 relative">
@@ -190,7 +191,7 @@ function RouteComponent() {
               </div>
             </div>
           </div>
-          
+
           {/* Subtle gradient line */}
           <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
         </div>
@@ -201,7 +202,7 @@ function RouteComponent() {
             <ShoppingBag size={64} className="mx-auto text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold text-foreground mb-2">Keranjang Kosong</h2>
             <p className="text-muted-foreground mb-6">Yuk, mulai belanja koleksi hijab terbaik kami!</p>
-            <Button 
+            <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
             >
               Mulai Belanja
@@ -217,13 +218,12 @@ function RouteComponent() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={toggleSelectAll}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                      selectedItems.length === cartItems.length
-                        ? 'bg-primary border-primary text-primary-foreground'
-                        : selectedItems.length > 0
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedItems.length === cartItems.length
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : selectedItems.length > 0
                         ? 'bg-primary/20 border-primary text-primary'
                         : 'border-border hover:border-primary'
-                    }`}
+                      }`}
                   >
                     {selectedItems.length === cartItems.length && (
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -235,11 +235,11 @@ function RouteComponent() {
                     )}
                   </button>
                   <span className="font-medium text-foreground">
-                    {selectedItems.length === cartItems.length 
-                      ? 'Semua item dipilih' 
+                    {selectedItems.length === cartItems.length
+                      ? 'Semua item dipilih'
                       : selectedItems.length === 0
-                      ? 'Pilih semua item'
-                      : `${selectedItems.length} dari ${cartItems.length} item dipilih`
+                        ? 'Pilih semua item'
+                        : `${selectedItems.length} dari ${cartItems.length} item dipilih`
                     }
                   </span>
                 </div>
@@ -248,94 +248,92 @@ function RouteComponent() {
               {cartItems.map((item) => {
                 const isSelected = selectedItems.includes(item.id)
                 return (
-                <div key={item.id} className={`bg-card border border-primary rounded-lg p-6 shadow-sm transition-all ${
-                  isSelected ? 'border-primary/50 bg-primary/5' : 'border-border'
-                }`}>
-                  <div className="flex gap-4">
-                    {/* Checkbox */}
-                    <div className="flex-shrink-0 pt-1">
-                      <button
-                        onClick={() => toggleSelectItem(item.id)}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                          isSelected
+                  <div key={item.id} className={`bg-card border border-primary rounded-lg p-6 shadow-sm transition-all ${isSelected ? 'border-primary/50 bg-primary/5' : 'border-border'
+                    }`}>
+                    <div className="flex gap-4">
+                      {/* Checkbox */}
+                      <div className="flex-shrink-0 pt-1">
+                        <button
+                          onClick={() => toggleSelectItem(item.id)}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected
                             ? 'bg-primary border-primary text-primary-foreground'
                             : 'border-border hover:border-primary'
-                        }`}
-                      >
-                        {isSelected && (
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Product Image */}
-                    <div className="w-24 h-24 flex-shrink-0">
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        <p>Warna: {item.color}</p>
-                        <p>Ukuran: {item.size}</p>
-                      </div>
-                      
-                      {/* Price - Perbaikan jarak */}
-                      <div className="flex items-center gap-1 mb-3">
-                        <span className="font-bold text-primary">{formatPrice(item.price)}</span>
-                        <span className="text-sm text-muted-foreground line-through ml-1">
-                          {formatPrice(item.originalPrice)}
-                        </span>
-                        <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded ml-1">
-                          -{item.discount}%
-                        </span>
-                      </div>
-
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
+                            }`}
                         >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-12 text-center font-medium">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
-                        >
-                          <Plus size={14} />
+                          {isSelected && (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
                         </button>
                       </div>
-                    </div>
 
-                    {/* Item Total dan Tombol Hapus */}
-                    <div className="text-right flex flex-col items-end gap-3">
-                      {/* Item Total */}
-                      <p className="font-bold text-lg text-primary">
-                        {formatPrice(item.price * item.quantity)}
-                      </p>
-                      
-                      {/* Tombol Hapus - Posisi baru di bawah total */}
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 hover:border-red-400 transition-all duration-200 text-sm font-medium group hover:scale-105 shadow-sm hover:shadow-md"
-                        title="Hapus item dari keranjang"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-all">
-                          <Trash2 size={14} className="group-hover:scale-110 transition-transform text-red-600" />
+                      {/* Product Image */}
+                      <div className="w-24 h-24 flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          <p>Warna: {item.color}</p>
+                          <p>Ukuran: {item.size}</p>
                         </div>
-                      </button>
+
+                        {/* Price - Perbaikan jarak */}
+                        <div className="flex items-center gap-1 mb-3">
+                          <span className="font-bold text-primary">{formatPrice(item.price)}</span>
+                          <span className="text-sm text-muted-foreground line-through ml-1">
+                            {formatPrice(item.originalPrice)}
+                          </span>
+                          <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded ml-1">
+                            -{item.discount}%
+                          </span>
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-12 text-center font-medium">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Item Total dan Tombol Hapus */}
+                      <div className="text-right flex flex-col items-end gap-3">
+                        {/* Item Total */}
+                        <p className="font-bold text-lg text-primary">
+                          {formatPrice(item.price * item.quantity)}
+                        </p>
+
+                        {/* Tombol Hapus - Posisi baru di bawah total */}
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 hover:border-red-400 transition-all duration-200 text-sm font-medium group hover:scale-105 shadow-sm hover:shadow-md"
+                          title="Hapus item dari keranjang"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-all">
+                            <Trash2 size={14} className="group-hover:scale-110 transition-transform text-red-600" />
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 )
               })}
             </div>
@@ -345,7 +343,7 @@ function RouteComponent() {
               <div className="hidden lg:block bg-card border border-primary rounded-lg p-8 shadow-sm sticky top-35 self-start w-[350px] max-w-none">
 
                 <h2 className="text-xl font-bold text-primary mb-6">Ringkasan Pesanan</h2>
-                
+
                 {/* Promo Code - Perbaikan proporsi */}
                 <div className="mb-6">
                   <label className="text-sm font-medium text-foreground mb-2 block">
@@ -371,7 +369,7 @@ function RouteComponent() {
                       Apply
                     </Button>
                   </div>
-                  
+
                   {appliedPromo && (
                     <div className="mt-2 flex items-center gap-2 text-sm text-success">
                       <Gift size={14} />
@@ -388,23 +386,23 @@ function RouteComponent() {
                     </span>
                     <span className="font-medium">{formatPrice(subtotal)}</span>
                   </div>
-                  
+
                   {appliedPromo && (
                     <div className="flex justify-between text-sm">
                       <span className="text-success">Diskon Promo</span>
                       <span className="font-medium text-success">-{formatPrice(promoDiscount)}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between text-sm pb-4">
                     <span className="text-muted-foreground">Ongkos Kirim</span>
                     <span className="font-medium">
                       {shippingFee === 0 ? 'GRATIS' : formatPrice(shippingFee)}
                     </span>
                   </div>
-                  
+
                   <hr className="border-border" />
-                  
+
                   <div className="flex justify-between text-lg font-bold pt-2">
                     <span className="text-foreground">Total</span>
                     <span className="text-primary">{formatPrice(total)}</span>
@@ -416,18 +414,18 @@ function RouteComponent() {
                   to="/checkout/"
                   className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
                 >
-                  <Button 
+                  <Button
                     disabled={selectedItems.length === 0 || subtotal === 0}
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
                   >
                     <ShoppingBag size={18} />
-                    {selectedItems.length === 0 
-                      ? 'Pilih item untuk checkout' 
+                    {selectedItems.length === 0
+                      ? 'Pilih item untuk checkout'
                       : `Checkout ${selectedItems.length} item`
                     }
                   </Button>
                 </Link>
-                
+
                 {/* Additional Info */}
                 <div className="mt-4 text-xs text-muted-foreground text-center">
                   <p className="mt-1">Pembayaran aman dengan berbagai metode</p>
@@ -489,7 +487,7 @@ function RouteComponent() {
                       Apply
                     </Button>
                   </div>
-                  
+
                   {appliedPromo && (
                     <div className="mt-2 flex items-center gap-2 text-sm text-success">
                       <Gift size={14} />
@@ -506,23 +504,23 @@ function RouteComponent() {
                     </span>
                     <span className="font-medium">{formatPrice(subtotal)}</span>
                   </div>
-                  
+
                   {appliedPromo && (
                     <div className="flex justify-between text-sm">
                       <span className="text-success">Diskon Promo</span>
                       <span className="font-medium text-success">-{formatPrice(promoDiscount)}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between text-sm pb-4">
                     <span className="text-muted-foreground">Ongkos Kirim</span>
                     <span className="font-medium">
                       {shippingFee === 0 ? 'GRATIS' : formatPrice(shippingFee)}
                     </span>
                   </div>
-                  
+
                   <hr className="border-border" />
-                  
+
                   <div className="flex justify-between text-lg font-bold pt-2">
                     <span className="text-foreground">Total</span>
                     <span className="text-primary">{formatPrice(total)}</span>
@@ -534,19 +532,19 @@ function RouteComponent() {
                   to="/checkout"
                   className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
                 >
-                  <Button 
+                  <Button
                     disabled={selectedItems.length === 0 || subtotal === 0}
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
                     onClick={() => setShowMobileSummary(false)}
                   >
                     <ShoppingBag size={18} />
-                    {selectedItems.length === 0 
-                      ? 'Pilih item untuk checkout' 
+                    {selectedItems.length === 0
+                      ? 'Pilih item untuk checkout'
                       : `Checkout ${selectedItems.length} item`
                     }
                   </Button>
                 </Link>
-                
+
                 {/* Additional Info - Mobile */}
                 <div className="mt-4 text-xs text-muted-foreground text-center">
                   <p className="mt-1">Pembayaran aman dengan berbagai metode</p>
@@ -590,6 +588,8 @@ function RouteComponent() {
           </div>
         )}
       </div>
+
+      <Footer />
     </div>
   )
 }

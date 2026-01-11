@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 import { checkAuth } from './login/-server'
 import { User } from './login/-utils'
+import { Footer } from '@/components/Footer'
+import { FeaturedCategories } from '@/components/FeaturedCategories'
+import { ProductGridSkeleton } from '@/components/SkeletonLoader'
+import { Testimonials } from '@/components/Testimonials'
+import { Newsletter } from '@/components/Newsletter'
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
@@ -180,77 +185,81 @@ function RouteComponent() {
           </div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {displayProducts.map((product: any) => (
-              <div key={product.id} className="group bg-card rounded-xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
-                {/* Product Image */}
-                <div className="relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {product.isNew && (
-                      <span className="bg-success text-success-foreground px-2 py-1 rounded-full text-xs font-semibold">
-                        NEW
+          {isLoadingProducts ? (
+            <ProductGridSkeleton count={6} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayProducts.map((product: any) => (
+                <div key={product.id} className="group bg-card rounded-xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                  {/* Product Image */}
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {/* Badges */}
+                    <div className="absolute top-4 left-4 flex flex-col gap-2">
+                      {product.isNew && (
+                        <span className="bg-success text-success-foreground px-2 py-1 rounded-full text-xs font-semibold">
+                          NEW
+                        </span>
+                      )}
+                      <span className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-semibold">
+                        -{product.discount}
                       </span>
-                    )}
-                    <span className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-semibold">
-                      -{product.discount}
-                    </span>
-                  </div>
-
-                  {/* Wishlist Button */}
-                  <button className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-all duration-200 group-hover:scale-110">
-                    <Heart size={18} className="text-muted-foreground hover:text-destructive" />
-                  </button>
-                </div>
-
-                {/* Product Info */}
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h3>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={14}
-                          className={`${i < Math.floor(product.rating) ? 'text-primary fill-warning' : 'text-muted-foreground'}`}
-                        />
-                      ))}
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {product.rating} ({product.reviews} ulasan)
-                    </span>
+
+                    {/* Wishlist Button */}
+                    <button className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-all duration-200 group-hover:scale-110">
+                      <Heart size={18} className="text-muted-foreground hover:text-destructive" />
+                    </button>
                   </div>
 
-                  {/* Price */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-xl font-bold text-primary">
-                      {product.price}
-                    </span>
-                    <span className="text-sm text-muted-foreground line-through">
-                      {product.originalPrice}
-                    </span>
-                  </div>
+                  {/* Product Info */}
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {product.name}
+                    </h3>
 
-                  {/* Add to Cart Button */}
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-all duration-300 group-hover:shadow-md"
-                  >
-                    <ShoppingCart size={18} className="mr-2" />
-                    Tambah ke Keranjang
-                  </Button>
+                    {/* Rating */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            className={`${i < Math.floor(product.rating) ? 'text-primary fill-warning' : 'text-muted-foreground'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {product.rating} ({product.reviews} ulasan)
+                      </span>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-xl font-bold text-primary">
+                        {product.price}
+                      </span>
+                      <span className="text-sm text-muted-foreground line-through">
+                        {product.originalPrice}
+                      </span>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-all duration-300 group-hover:shadow-md"
+                    >
+                      <ShoppingCart size={18} className="mr-2" />
+                      Tambah ke Keranjang
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* View More Button */}
           <div className="text-center mt-12">
@@ -267,6 +276,17 @@ function RouteComponent() {
           </div>
         </div>
       </section>
+
+      {/* Featured Categories Section */}
+      <FeaturedCategories />
+
+      {/* Testimonials Section */}
+      <Testimonials />
+
+      {/* Newsletter Section */}
+      <Newsletter />
+
+      <Footer />
     </div>
   )
 }
