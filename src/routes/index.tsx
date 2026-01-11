@@ -12,6 +12,7 @@ import { FeaturedCategories } from '@/components/FeaturedCategories'
 import { ProductGridSkeleton } from '@/components/SkeletonLoader'
 import { Testimonials } from '@/components/Testimonials'
 import { Newsletter } from '@/components/Newsletter'
+import { getImageUrl } from '@/config/env'
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
@@ -34,78 +35,11 @@ function RouteComponent() {
       originalPrice: `Rp ${Math.round((product.variants[0]?.price || 0) * 1.3).toLocaleString('id-ID')}`,
       rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
       reviews: Math.floor(Math.random() * 300) + 50, // Random reviews 50-350
-      image: "/user/modelhijab.jpg",
+      image: getImageUrl(product.images?.[0]?.url) || "/user/modelhijab.jpg",
       isNew: index < 2, // Mark first 2 as new
       discount: `${Math.floor(Math.random() * 40) + 20}%` // Random discount 20-60%
     }))
-    : [
-      {
-        id: 1,
-        name: "Hijab Segi Empat Premium",
-        price: "Rp 89.000",
-        originalPrice: "Rp 120.000",
-        rating: 4.8,
-        reviews: 156,
-        image: "/user/modelhijab.jpg",
-        isNew: true,
-        discount: "26%"
-      },
-      {
-        id: 2,
-        name: "Pashmina Kasmir Elegan",
-        price: "Rp 125.000",
-        originalPrice: "Rp 180.000",
-        rating: 4.9,
-        reviews: 203,
-        image: "/user/modelhijab.jpg",
-        isNew: false,
-        discount: "31%"
-      },
-      {
-        id: 3,
-        name: "Bergo Instant Daily",
-        price: "Rp 65.000",
-        originalPrice: "Rp 85.000",
-        rating: 4.7,
-        reviews: 89,
-        image: "/user/modelhijab.jpg",
-        isNew: true,
-        discount: "24%"
-      },
-      {
-        id: 4,
-        name: "Hijab Syari Polos",
-        price: "Rp 95.000",
-        originalPrice: "Rp 130.000",
-        rating: 4.6,
-        reviews: 142,
-        image: "/user/modelhijab.jpg",
-        isNew: false,
-        discount: "27%"
-      },
-      {
-        id: 5,
-        name: "Kerudung Motif Cantik",
-        price: "Rp 75.000",
-        originalPrice: "Rp 110.000",
-        rating: 4.8,
-        reviews: 178,
-        image: "/user/modelhijab.jpg",
-        isNew: true,
-        discount: "32%"
-      },
-      {
-        id: 6,
-        name: "Hijab Organza Luxury",
-        price: "Rp 145.000",
-        originalPrice: "Rp 200.000",
-        rating: 4.9,
-        reviews: 267,
-        image: "/user/modelhijab.jpg",
-        isNew: false,
-        discount: "28%"
-      }
-    ]
+    : []
 
   const getSubtitle = () => {
     if (user) {

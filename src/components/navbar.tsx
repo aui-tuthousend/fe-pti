@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
-import { 
-  Search, 
-  ShoppingCart, 
+import {
+  Search,
+  ShoppingCart,
   User,
   Sun,
   Moon,
@@ -59,7 +59,7 @@ export function Navbar() {
     <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
+
           {/* Left Section */}
           <div className="flex items-center gap-4">
 
@@ -99,14 +99,14 @@ export function Navbar() {
               className="text-primary hover:bg-primary/10"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              <Sun 
+              <Sun
                 className="h-5 w-5 transition-all duration-300"
                 style={{
                   transform: theme === 'dark' ? 'rotate(-90deg) scale(0)' : 'rotate(0deg) scale(1)',
                   opacity: theme === 'dark' ? 0 : 1,
                 }}
               />
-              <Moon 
+              <Moon
                 className="absolute h-5 w-5 transition-all duration-300"
                 style={{
                   transform: theme === 'dark' ? 'rotate(0deg) scale(1)' : 'rotate(90deg) scale(0)',
@@ -128,16 +128,18 @@ export function Navbar() {
             </Button>
 
             {/* Shopping Cart */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary hover:bg-primary/10 relative"
-            >
-              <ShoppingCart size={20} />
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                5
-              </span>
-            </Button>
+            <Link to="/cart">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary hover:bg-primary/10 relative"
+              >
+                <ShoppingCart size={20} />
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  5
+                </span>
+              </Button>
+            </Link>
 
             {/* dropdown auth */}
             <div className="relative ml-1" ref={dropdownRef}>
@@ -148,8 +150,8 @@ export function Navbar() {
               >
                 {isLoggedIn ? (
                   <>
-                    <img 
-                      src={user.avatar} 
+                    <img
+                      src={user.avatar}
                       alt={user.name}
                       className="w-6 h-6 rounded-full object-cover"
                     />
@@ -175,8 +177,8 @@ export function Navbar() {
                     <div className="py-2">
                       <div className="px-4 py-3 border-b border-border">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={user.avatar} 
+                          <img
+                            src={user.avatar}
                             alt={user.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -186,7 +188,7 @@ export function Navbar() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="py-1">
                         <button
                           onClick={() => {
@@ -198,7 +200,7 @@ export function Navbar() {
                           <UserCircle size={16} />
                           Profile
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
@@ -209,7 +211,7 @@ export function Navbar() {
                           <ShoppingCart size={16} />
                           My Orders
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
@@ -220,9 +222,9 @@ export function Navbar() {
                           <Settings size={16} />
                           Settings
                         </button>
-                        
+
                         <div className="border-t border-border my-1"></div>
-                        
+
                         <button
                           onClick={handleLogout}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
@@ -239,7 +241,7 @@ export function Navbar() {
                         <p className="text-md font-medium text-primary">Welcome to ArimbiStore</p>
                         <p className="text-sm text-primary">Sign in to access your account</p>
                       </div>
-                      
+
                       <div className="py-1">
                         <button
                           onClick={handleLogin}
@@ -248,7 +250,7 @@ export function Navbar() {
                           <User size={20} />
                           Sign In
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
@@ -265,7 +267,7 @@ export function Navbar() {
                 </div>
               )}
             </div>
-            
+
           </div>
         </div>
       </div>

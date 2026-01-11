@@ -9,6 +9,7 @@ import { CatalogFilter } from '@/components/catalog/CatalogFilter'
 import { CatalogHeader } from '@/components/catalog/CatalogHeader'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { ProductQuickView } from '@/components/ProductQuickView'
+import { getImageUrl } from '@/config/env'
 
 export const Route = createFileRoute('/catalog/')({
   component: RouteComponent,
@@ -47,31 +48,12 @@ function RouteComponent() {
     reviews: 0,
     colors: ["Default"],
     sizes: ["One Size"],
-    image: "/user/modelhijab.jpg",
-    images: ["/user/modelhijab.jpg"],
+    image: getImageUrl(p.images?.[0]?.url) || "/user/modelhijab.jpg",
+    images: p.images?.map(img => getImageUrl(img.url) || "/user/modelhijab.jpg") || ["/user/modelhijab.jpg"],
     description: p.description,
     stock: p.variants?.[0]?.inventory_quantity || 0,
     isBestseller: false
-  })) : [
-    {
-      id: 1,
-      name: "Hijab Segi Empat Premium Silk",
-      category: "Segi Empat",
-      price: 89000,
-      originalPrice: 120000,
-      discount: 26,
-      rating: 4.8,
-      reviews: 124,
-      colors: ["Dusty Pink", "Navy", "Cream", "Black"],
-      sizes: ["110x110cm"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg"],
-      description: "Hijab segi empat premium dengan bahan silk berkualitas tinggi",
-      stock: 15,
-      isBestseller: true
-    },
-    // ... other demo products
-  ]
+  })) : []
 
   const categories = ["Semua", "Segi Empat", "Pashmina", "Bergo", "Voal", "Syari", "Organza"]
   const colors = ["Semua", "Black", "Navy", "Cream", "Pink", "Brown", "White", "Grey"]
