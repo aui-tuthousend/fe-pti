@@ -340,7 +340,7 @@ function RouteComponent() {
             {/* Right Side - Windows */}
             <div className="lg:col-span-1">
               {/* Desktop Summary */}
-              <div className="hidden lg:block bg-card border border-primary rounded-lg p-8 shadow-sm sticky top-35 self-start w-[350px] max-w-none">
+              <div className="hidden lg:block bg-card border border-primary rounded-lg p-6 shadow-sm sticky top-24 self-start max-w-sm w-full">
 
                 <h2 className="text-xl font-bold text-primary mb-6">Ringkasan Pesanan</h2>
 
