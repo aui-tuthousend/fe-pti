@@ -21,7 +21,8 @@ import {
   UserCircle,
   Command,
 } from "lucide-react"
-import { Link, useLocation } from "@tanstack/react-router"
+import { Link, useLocation, useRouter } from "@tanstack/react-router"
+import { logoutFn } from "@/routes/login/-server"
 
 // Menu items.
 const items = [
@@ -53,7 +54,18 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ user }: AdminSidebarProps) {
   const location = useLocation()
+  const router = useRouter()
   const pathname = location.pathname
+
+  const handleLogout = async () => {
+    try {
+      await logoutFn()
+      await router.invalidate()
+      await router.navigate({ to: '/login' })
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -120,7 +132,11 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <SidebarMenuButton
+              size="lg"
+              onClick={handleLogout}
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+            >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <UserCircle className="size-5" />
               </div>
