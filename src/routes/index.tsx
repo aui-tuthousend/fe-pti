@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProductResponse } from '@/features/product/types'
 import { useGetAllProduct } from '@/features/product/hooks'
@@ -197,16 +197,18 @@ function RouteComponent() {
 
           {/* View More Button */}
           <div className="text-center mt-12">
-            <Button
-              variant="outline"
-              size="lg"
-              className="relative border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-12 py-4 rounded-full font-bold text-lg transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-primary/25 bg-gradient-to-r from-transparent to-transparent hover:from-primary/5 hover:to-primary/10 backdrop-blur-sm group overflow-hidden"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Lihat Semua Produk
-              </span>
-              <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-900"></div>
-            </Button>
+            <Link to="/catalog">
+              <Button
+                variant="outline"
+                size="lg"
+                className="relative border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-12 py-4 rounded-full font-bold text-lg transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:shadow-primary/25 bg-gradient-to-r from-transparent to-transparent hover:from-primary/5 hover:to-primary/10 backdrop-blur-sm group overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Lihat Semua Produk
+                </span>
+                <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-900"></div>
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
