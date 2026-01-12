@@ -3,6 +3,7 @@ import { useSession } from '@tanstack/react-start/server'
 import { SESSION_SECRET } from '@/config/env'
 
 export type User = {
+  uuid: string,
   name: string,
   email: string,
   phone: string,

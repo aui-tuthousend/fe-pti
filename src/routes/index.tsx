@@ -13,6 +13,8 @@ import { ProductGridSkeleton } from '@/components/SkeletonLoader'
 import { Testimonials } from '@/components/Testimonials'
 import { Newsletter } from '@/components/Newsletter'
 import { getImageUrl } from '@/config/env'
+import { AddToCartDialog } from '@/components/AddToCartDialog'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
@@ -22,6 +24,8 @@ function RouteComponent() {
 
   const [user, setUser] = useState<User | null>(null)
   const { data: products, isLoading: isLoadingProducts } = useGetAllProduct()
+  const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<ProductResponse | null>(null)
 
   // Note: Products are automatically fetched when the hook is used
   // No need for manual refetch on mount
@@ -57,6 +61,18 @@ function RouteComponent() {
     }
     fetchUser()
   }, [])
+
+  const handleAddToCart = (product: ProductResponse) => {
+    if (!user) {
+      toast.error('Tidak Terautentikasi', {
+        description: 'Silakan login terlebih dahulu untuk menambahkan ke keranjang'
+      })
+      return
+    }
+
+    setSelectedProduct(product)
+    setAddToCartDialogOpen(true)
+  }
 
 
   return (
@@ -111,11 +127,11 @@ function RouteComponent() {
                 : 'Pilihan hijab berkualitas tinggi dengan desain modern dan elegan yang cocok untuk berbagai acara'
               }
             </p>
-            {user && (
+            {/* {user && (
               <div className="mt-4 text-sm text-muted-foreground">
                 Based on your profile: <span className="text-primary font-medium">{user.name}</span>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Products Grid */}
@@ -184,7 +200,13 @@ function RouteComponent() {
 
                     {/* Add to Cart Button */}
                     <Button
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-all duration-300 group-hover:shadow-md"
+                      className="w-full bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-all duration-300 group-hover:shadow-md"
+                      onClick={() => {
+                        const originalProduct = products?.find(p => p.uuid === product.id)
+                        if (originalProduct) {
+                          handleAddToCart(originalProduct)
+                        }
+                      }}
                     >
                       <ShoppingCart size={18} className="mr-2" />
                       Tambah ke Keranjang
@@ -214,13 +236,27 @@ function RouteComponent() {
       </section>
 
       {/* Featured Categories Section */}
-      <FeaturedCategories />
+      {/* <FeaturedCategories /> */}
 
       {/* Testimonials Section */}
-      <Testimonials />
+      {/* <Testimonials /> */}
 
       {/* Newsletter Section */}
-      <Newsletter />
+      {/* <Newsletter /> */}
+
+      {/* Add to Cart Dialog */}
+      {selectedProduct && (
+        <AddToCartDialog
+          open={addToCartDialogOpen}
+          onOpenChange={setAddToCartDialogOpen}
+          variants={selectedProduct.variants}
+          productName={selectedProduct.title}
+          token={user?.token}
+          onSuccess={() => {
+            // Optional: Refetch cart data or show notification
+          }}
+        />
+      )}
 
       <Footer />
     </div>

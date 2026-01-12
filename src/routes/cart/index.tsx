@@ -1,101 +1,64 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
-// import { Navbar } from '../../components/navbar'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Gift, X } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/Footer'
-// import { SuccessAlert } from '@/components/ui/SuccesAlert'
+import { useGetCart } from './-hooks'
+import { updateCartFn, deleteCartItemFn } from './-server'
+import { checkAuth } from '../login/-server'
+import { User } from '../login/-utils'
+import { toast } from 'sonner'
+import { getImageUrl } from '@/config/env'
+import { CartItemWithVariant } from './-types'
+import { useQueryClient } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/cart/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [user, setUser] = useState<User | null>(null)
   const [promoCode, setPromoCode] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null)
-  const [selectedItems, setSelectedItems] = useState<number[]>([1, 2, 3, 4]) // Default semua item dipilih
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
+  const [selectedItems, setSelectedItems] = useState<string[]>([]) // UUIDs of selected items
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [showMobileSummary, setShowMobileSummary] = useState(false)
+  const [isLoadingUpdate, setIsLoadingUpdate] = useState(false)
 
-  const handleMenuClick = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  // Data keranjang belanja
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Hijab Segi Empat Premium",
-      price: 89000,
-      originalPrice: 120000,
-      quantity: 2,
-      image: "/user/modelhijab.jpg",
-      color: "Dusty Pink",
-      size: "110cm x 110cm",
-      discount: 26
-    },
-    {
-      id: 2,
-      name: "Pashmina Kasmir Elegan",
-      price: 125000,
-      originalPrice: 180000,
-      quantity: 1,
-      image: "/user/modelhijab.jpg",
-      color: "Navy Blue",
-      size: "75cm x 200cm",
-      discount: 31
-    },
-    {
-      id: 3,
-      name: "Bergo Instant Daily",
-      price: 65000,
-      originalPrice: 85000,
-      quantity: 3,
-      image: "/user/modelhijab.jpg",
-      color: "Cream",
-      size: "One Size",
-      discount: 24
-    }, {
-      id: 4,
-      name: "Bergo Instant Daily",
-      price: 65000,
-      originalPrice: 85000,
-      quantity: 3,
-      image: "/user/modelhijab.jpg",
-      color: "Cream",
-      size: "One Size",
-      discount: 24
-    }, {
-      id: 5,
-      name: "Bergo Instant Daily",
-      price: 65000,
-      originalPrice: 85000,
-      quantity: 3,
-      image: "/user/modelhijab.jpg",
-      color: "Cream",
-      size: "One Size",
-      discount: 24
-    }, {
-      id: 6,
-      name: "Bergo Instant Daily",
-      price: 65000,
-      originalPrice: 85000,
-      quantity: 3,
-      image: "/user/modelhijab.jpg",
-      color: "Cream",
-      size: "One Size",
-      discount: 24
+  // Fetch user session
+  useEffect(() => {
+    const fetchUser = async () => {
+      const auth = await checkAuth()
+      if (auth?.user) {
+        setUser(auth.user)
+      } else {
+        navigate({ to: '/login' })
+      }
     }
-  ])
+    fetchUser()
+  }, [navigate])
+
+  // Always call the hook (with null token if user doesn't exist)
+  const { data: cartData, isLoading: isLoadingCart } = useGetCart(user?.token ?? null)
+
+  const cartItems = cartData?.items || []
+
+  // Auto-select all items on load
+  useEffect(() => {
+    if (cartItems.length > 0 && selectedItems.length === 0) {
+      setSelectedItems(cartItems.map(item => item.uuid))
+    }
+  }, [cartItems])
 
   // Fungsi untuk toggle select item
-  const toggleSelectItem = (id: number) => {
+  const toggleSelectItem = (uuid: string) => {
     setSelectedItems(prev =>
-      prev.includes(id)
-        ? prev.filter(itemId => itemId !== id)
-        : [...prev, id]
+      prev.includes(uuid)
+        ? prev.filter(itemId => itemId !== uuid)
+        : [...prev, uuid]
     )
   }
 
@@ -104,41 +67,82 @@ function RouteComponent() {
     if (selectedItems.length === cartItems.length) {
       setSelectedItems([])
     } else {
-      setSelectedItems(cartItems.map(item => item.id))
+      setSelectedItems(cartItems.map(item => item.uuid))
     }
   }
 
   // Fungsi untuk update quantity
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const updateQuantity = async (uuid: string, newQuantity: number) => {
     if (newQuantity === 0) {
-      removeItem(id)
+      handleDeleteClick(uuid)
       return
     }
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    )
+
+    if (!user) return
+
+    setIsLoadingUpdate(true)
+    try {
+      await updateCartFn({
+        data: {
+          uuid,
+          quantity: newQuantity,
+          token: user.token
+        }
+      })
+
+      // Refetch cart data
+      queryClient.invalidateQueries({ queryKey: ['cart', user.token] })
+
+      toast.success('Berhasil', {
+        description: 'Quantity berhasil diupdate'
+      })
+    } catch (error) {
+      console.error('Error updating quantity:', error)
+      toast.error('Gagal', {
+        description: 'Gagal mengupdate quantity'
+      })
+    } finally {
+      setIsLoadingUpdate(false)
+    }
   }
 
   // Fungsi untuk hapus item dengan konfirmasi
-  const handleDeleteClick = (id: number) => {
-    setShowDeleteConfirm(id)
+  const handleDeleteClick = (uuid: string) => {
+    setShowDeleteConfirm(uuid)
   }
 
-  const confirmDelete = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id))
-    setSelectedItems(prev => prev.filter(itemId => itemId !== id))
-    setShowDeleteConfirm(null)
+  const confirmDelete = async (uuid: string) => {
+    if (!user) return
+
+    try {
+      await deleteCartItemFn({
+        data: {
+          uuid,
+          token: user.token
+        }
+      })
+
+      // Remove from selected items
+      setSelectedItems(prev => prev.filter(itemId => itemId !== uuid))
+
+      // Refetch cart data
+      queryClient.invalidateQueries({ queryKey: ['cart', user.token] })
+
+      toast.success('Berhasil', {
+        description: 'Item berhasil dihapus dari keranjang'
+      })
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      toast.error('Gagal', {
+        description: 'Gagal menghapus item dari keranjang'
+      })
+    } finally {
+      setShowDeleteConfirm(null)
+    }
   }
 
   const cancelDelete = () => {
     setShowDeleteConfirm(null)
-  }
-
-  // Fungsi untuk hapus item (legacy - sekarang menggunakan konfirmasi)
-  const removeItem = (id: number) => {
-    handleDeleteClick(id)
   }
 
   // Fungsi untuk apply promo code
@@ -146,17 +150,25 @@ function RouteComponent() {
     if (promoCode.toLowerCase() === 'hijab10') {
       setAppliedPromo('HIJAB10')
       setPromoCode('')
+      toast.success('Promo diterapkan', {
+        description: 'Diskon 10% berhasil diterapkan'
+      })
     } else if (promoCode.toLowerCase() === 'newcustomer') {
       setAppliedPromo('NEWCUSTOMER')
       setPromoCode('')
+      toast.success('Promo diterapkan', {
+        description: 'Diskon Rp 25.000 berhasil diterapkan'
+      })
     } else {
-      alert('Kode promo tidak valid')
+      toast.error('Kode tidak valid', {
+        description: 'Kode promo yang Anda masukkan tidak valid'
+      })
     }
   }
 
   // Perhitungan total
-  const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id))
-  const subtotal = selectedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
+  const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.uuid))
+  const subtotal = selectedCartItems.reduce((total, item) => total + (item.variant.price * item.quantity), 0)
   const promoDiscount = appliedPromo === 'HIJAB10' ? subtotal * 0.1 : appliedPromo === 'NEWCUSTOMER' ? 25000 : 0
   const shippingFee = subtotal > 150000 ? 0 : 15000
   const total = subtotal - promoDiscount + shippingFee
@@ -167,6 +179,10 @@ function RouteComponent() {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(price)
+  }
+
+  if (!user) {
+    return null // Will redirect to login
   }
 
   return (
@@ -196,22 +212,29 @@ function RouteComponent() {
           <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
         </div>
 
-        {cartItems.length === 0 ? (
+        {isLoadingCart ? (
+          // Loading State
+          <div className="text-center py-16">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Memuat Keranjang...</h2>
+            <p className="text-muted-foreground">Mohon tunggu sebentar</p>
+          </div>
+        ) : cartItems.length === 0 ? (
           // Empty Cart
-          (<div className="text-center py-16">
+          <div className="text-center py-16">
             <ShoppingBag size={64} className="mx-auto text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold text-foreground mb-2">Keranjang Kosong</h2>
             <p className="text-muted-foreground mb-6">Yuk, mulai belanja koleksi hijab terbaik kami!</p>
-            <Button
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
-            >
-              Mulai Belanja
-            </Button>
-          </div>)
+            <Link to="/">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3">
+                Mulai Belanja
+              </Button>
+            </Link>
+          </div>
         ) : (
           // Cart with Items
-          (<div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Left Side - Cart Items (3/4 width) */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Left Side - Cart Items */}
             <div className="lg:col-span-3 space-y-4">
               {/* Select All Header */}
               <div className="bg-card border border-primary rounded-lg p-4 shadow-sm">
@@ -245,16 +268,20 @@ function RouteComponent() {
                 </div>
               </div>
 
-              {cartItems.map((item) => {
-                const isSelected = selectedItems.includes(item.id)
+              {cartItems.map((item: CartItemWithVariant) => {
+                const isSelected = selectedItems.includes(item.uuid)
+                const imageUrl = item.variant.images && item.variant.images.length > 0
+                  ? getImageUrl(item.variant.images[0].url) ?? '/user/modelhijab.jpg'
+                  : '/user/modelhijab.jpg'
+
                 return (
-                  <div key={item.id} className={`bg-card border border-primary rounded-lg p-6 shadow-sm transition-all ${isSelected ? 'border-primary/50 bg-primary/5' : 'border-border'
+                  <div key={item.uuid} className={`bg-card border rounded-lg p-6 shadow-sm transition-all ${isSelected ? 'border-primary/50 bg-primary/5' : 'border-border'
                     }`}>
                     <div className="flex gap-4">
                       {/* Checkbox */}
                       <div className="flex-shrink-0 pt-1">
                         <button
-                          onClick={() => toggleSelectItem(item.id)}
+                          onClick={() => toggleSelectItem(item.uuid)}
                           className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected
                             ? 'bg-primary border-primary text-primary-foreground'
                             : 'border-border hover:border-primary'
@@ -271,43 +298,39 @@ function RouteComponent() {
                       {/* Product Image */}
                       <div className="w-24 h-24 flex-shrink-0">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={imageUrl}
+                          alt={item.variant.title}
                           className="w-full h-full object-cover rounded-lg"
                         />
                       </div>
 
                       {/* Product Info */}
                       <div className="flex-1">
-                        <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
+                        <h3 className="font-semibold text-foreground mb-1">{item.variant.product.title}</h3>
                         <div className="text-sm text-muted-foreground mb-2">
-                          <p>Warna: {item.color}</p>
-                          <p>Ukuran: {item.size}</p>
+                          <p>Variant: {item.variant.title}</p>
+                          <p>Option: {item.variant.option1}</p>
                         </div>
 
-                        {/* Price - Perbaikan jarak */}
-                        <div className="flex items-center gap-1 mb-3">
-                          <span className="font-bold text-primary">{formatPrice(item.price)}</span>
-                          <span className="text-sm text-muted-foreground line-through ml-1">
-                            {formatPrice(item.originalPrice)}
-                          </span>
-                          <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded ml-1">
-                            -{item.discount}%
-                          </span>
+                        {/* Price */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="font-bold text-primary">{formatPrice(item.variant.price)}</span>
                         </div>
 
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
+                            onClick={() => updateQuantity(item.uuid, item.quantity - 1)}
+                            disabled={isLoadingUpdate}
+                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                           >
                             <Minus size={14} />
                           </button>
                           <span className="w-12 text-center font-medium">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors"
+                            onClick={() => updateQuantity(item.uuid, item.quantity + 1)}
+                            disabled={isLoadingUpdate}
+                            className="w-8 h-8 rounded-full border border-primary flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                           >
                             <Plus size={14} />
                           </button>
@@ -318,12 +341,12 @@ function RouteComponent() {
                       <div className="text-right flex flex-col items-end gap-3">
                         {/* Item Total */}
                         <p className="font-bold text-lg text-primary">
-                          {formatPrice(item.price * item.quantity)}
+                          {formatPrice(item.variant.price * item.quantity)}
                         </p>
 
-                        {/* Tombol Hapus - Posisi baru di bawah total */}
+                        {/* Tombol Hapus */}
                         <button
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleDeleteClick(item.uuid)}
                           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 hover:border-red-400 transition-all duration-200 text-sm font-medium group hover:scale-105 shadow-sm hover:shadow-md"
                           title="Hapus item dari keranjang"
                         >
@@ -337,14 +360,14 @@ function RouteComponent() {
                 )
               })}
             </div>
-            {/* Right Side - Windows */}
+
+            {/* Right Side - Summary */}
             <div className="lg:col-span-1">
               {/* Desktop Summary */}
               <div className="hidden lg:block bg-card border border-primary rounded-lg p-6 shadow-sm sticky top-24 self-start max-w-sm w-full">
-
                 <h2 className="text-xl font-bold text-primary mb-6">Ringkasan Pesanan</h2>
 
-                {/* Promo Code - Perbaikan proporsi */}
+                {/* Promo Code */}
                 <div className="mb-6">
                   <label className="text-sm font-medium text-foreground mb-2 block">
                     Kode Promo
@@ -378,7 +401,7 @@ function RouteComponent() {
                   )}
                 </div>
 
-                {/* Order Details - Perbaikan ruang vertikal */}
+                {/* Order Details */}
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
@@ -409,9 +432,9 @@ function RouteComponent() {
                   </div>
                 </div>
 
-                {/* Checkout Button - Perbaikan ukuran dan ikon */}
+                {/* Checkout Button */}
                 <Link
-                  to="/checkout/"
+                  to="/checkout"
                   className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
                 >
                   <Button
@@ -432,7 +455,7 @@ function RouteComponent() {
                 </div>
               </div>
             </div>
-          </div>)
+          </div>
         )}
 
         {/* Floating Toggle Button for Mobile */}
@@ -460,7 +483,7 @@ function RouteComponent() {
                 </button>
               </div>
 
-              {/* Content */}
+              {/* Content - Same as desktop summary */}
               <div className="p-6">
                 {/* Promo Code - Mobile */}
                 <div className="mb-6">
@@ -496,7 +519,7 @@ function RouteComponent() {
                   )}
                 </div>
 
-                {/* Order Details - Mobile */}
+                {/* Order Details - Mobile (same as desktop) */}
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">

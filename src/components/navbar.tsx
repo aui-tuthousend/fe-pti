@@ -8,7 +8,6 @@ import {
   User,
   Sun,
   Moon,
-  Bell,
   ChevronDown,
   LogOut,
   Settings,
@@ -16,18 +15,25 @@ import {
 } from 'lucide-react'
 
 
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { checkAuth, logoutFn } from '@/routes/login/-server'
+
 export function Navbar() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false) // State untuk simulasi login
-  const [user] = useState({
-    name: 'Arimbi User',
-    email: 'user@arimbistore.com',
-    avatar: '/user/arimbilogo.png'
-  })
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const { data: auth } = useQuery({
+    queryKey: ['auth'],
+    queryFn: () => checkAuth(),
+  })
+
+  const user = auth?.user
+  const isLoggedIn = !!user
+  const userAvatar = '/user/arimbilogo.png'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,10 +55,11 @@ export function Navbar() {
     navigate({ to: '/login' })
   }
 
-  const handleLogout = () => {
-    setIsLoggedIn(false)
+  const handleLogout = async () => {
+    await logoutFn()
+    await queryClient.invalidateQueries({ queryKey: ['auth'] })
     setIsDropdownOpen(false)
-    // Di sini nanti bisa redirect ke home
+    navigate({ to: '/' })
   }
 
   return (
@@ -116,7 +123,7 @@ export function Navbar() {
             </Button>
 
             {/* Notifications */}
-            <Button
+            {/* <Button
               variant="ghost"
               size="icon"
               className="text-primary hover:bg-primary/10 relative"
@@ -125,60 +132,50 @@ export function Navbar() {
               <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 22
               </span>
-            </Button>
+            </Button> */}
 
             {/* Shopping Cart */}
-            <Link to="/cart">
+            <Link to={isLoggedIn ? "/cart" : "/login"}>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-primary hover:bg-primary/10 relative"
+                className="text-primary hover:bg-primary/10 relative cursor-pointer"
               >
                 <ShoppingCart size={20} />
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  5
+                  {/* {cart?.length} */}
                 </span>
               </Button>
             </Link>
 
             {/* dropdown auth */}
-            <div className="relative ml-1" ref={dropdownRef}>
-              <Button
-                variant="ghost"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="text-primary hover:bg-primary/30 flex items-center gap-2 h-10 px-3 rounded-lg border border-primary hover:border-primary transition-all"
-              >
-                {isLoggedIn ? (
-                  <>
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                    <span className="hidden sm:block text-primary font-medium">
-                      {user.name.split(' ')[0]}
-                    </span>
-                    <ChevronDown size={16} className="hidden sm:block text-primary" />
-                  </>
-                ) : (
-                  <>
-                    <User size={20} className="text-primary" />
-                    <span className="hidden sm:block text-primary font-medium">Account</span>
-                    <ChevronDown size={16} className="hidden sm:block text-primary" />
-                  </>
-                )}
-              </Button>
+            {/* Auth Section */}
+            {isLoggedIn ? (
+              <div className="relative ml-1" ref={dropdownRef}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="text-primary hover:bg-primary/30 flex items-center gap-2 h-10 px-3 rounded-lg border border-primary hover:border-primary transition-all"
+                >
+                  <img
+                    src={userAvatar}
+                    alt={user.name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                  <span className="hidden sm:block text-primary font-medium">
+                    {user.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown size={16} className="hidden sm:block text-primary" />
+                </Button>
 
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-64 bg-card border border-primary rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
-                  {isLoggedIn ? (
-                    // Logged In Dropdown
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-64 bg-card border border-primary rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
                     <div className="py-2">
                       <div className="px-4 py-3 border-b border-border">
                         <div className="flex items-center gap-3">
                           <img
-                            src={user.avatar}
+                            src={userAvatar}
                             alt={user.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -234,39 +231,19 @@ export function Navbar() {
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    // Not Logged In Dropdown
-                    <div className="py-2">
-                      <div className="px-4 py-3 border-b border-primary">
-                        <p className="text-md font-medium text-primary">Welcome to ArimbiStore</p>
-                        <p className="text-sm text-primary">Sign in to access your account</p>
-                      </div>
-
-                      <div className="py-1">
-                        <button
-                          onClick={handleLogin}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
-                        >
-                          <User size={20} />
-                          Sign In
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setIsDropdownOpen(false)
-                            navigate({ to: '/register' })
-                          }}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
-                        >
-                          <UserCircle size={20} />
-                          Create Account
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={handleLogin}
+                className="text-primary hover:bg-primary/30 flex items-center gap-2 h-10 px-3 rounded-lg border border-primary hover:border-primary transition-all ml-1"
+              >
+                <User size={20} className="text-primary" />
+                <span className="hidden sm:block text-primary font-medium">Masuk</span>
+              </Button>
+            )}
 
           </div>
         </div>
