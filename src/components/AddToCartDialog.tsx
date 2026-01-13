@@ -220,7 +220,7 @@ export function AddToCartDialog({
                 </Button>
                 <Input
                   id="quantity"
-                  type="number"
+                  type="tel"
                   min="1"
                   max={selectedVariant?.available}
                   value={quantity}

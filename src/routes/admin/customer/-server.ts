@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { API_BASE_URL } from '@/config/env'
 import { fetchServer } from '@/lib/fetchServer'
 import { urlBuilder } from '@/lib/utils'
 

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegisterIndexRouteImport } from './routes/register/index'
+import { Route as OrderIndexRouteImport } from './routes/order/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout/index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const RegisterIndexRoute = RegisterIndexRouteImport.update({
   id: '/register/',
   path: '/register/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderIndexRoute = OrderIndexRouteImport.update({
+  id: '/order/',
+  path: '/order/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogIndexRoute
   '/checkout': typeof CheckoutIndexRoute
   '/login': typeof LoginIndexRoute
+  '/order': typeof OrderIndexRoute
   '/register': typeof RegisterIndexRoute
   '/admin/customer': typeof AdminCustomerIndexRoute
   '/admin/order': typeof AdminOrderIndexRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogIndexRoute
   '/checkout': typeof CheckoutIndexRoute
   '/login': typeof LoginIndexRoute
+  '/order': typeof OrderIndexRoute
   '/register': typeof RegisterIndexRoute
   '/admin/customer': typeof AdminCustomerIndexRoute
   '/admin/order': typeof AdminOrderIndexRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/catalog/': typeof CatalogIndexRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/order/': typeof OrderIndexRoute
   '/register/': typeof RegisterIndexRoute
   '/admin/customer/': typeof AdminCustomerIndexRoute
   '/admin/order/': typeof AdminOrderIndexRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/order'
     | '/register'
     | '/admin/customer'
     | '/admin/order'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/order'
     | '/register'
     | '/admin/customer'
     | '/admin/order'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/catalog/'
     | '/checkout/'
     | '/login/'
+    | '/order/'
     | '/register/'
     | '/admin/customer/'
     | '/admin/order/'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   CatalogIndexRoute: typeof CatalogIndexRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
+  OrderIndexRoute: typeof OrderIndexRoute
   RegisterIndexRoute: typeof RegisterIndexRoute
 }
 
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order/': {
+      id: '/order/'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
@@ -293,6 +313,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogIndexRoute: CatalogIndexRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
+  OrderIndexRoute: OrderIndexRoute,
   RegisterIndexRoute: RegisterIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -2,13 +2,13 @@ import { createFileRoute, Link, useParams } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
-import { 
-  Heart, 
-  Share2, 
-  Star, 
-  Minus, 
-  Plus, 
-  ShoppingCart, 
+import {
+  Heart,
+  Share2,
+  Star,
+  Minus,
+  Plus,
+  ShoppingCart,
   ChevronLeft,
   ChevronRight,
   User,
@@ -185,7 +185,7 @@ function ProductDetailPage() {
       "Tersedia berbagai pilihan warna",
       "Cocok untuk segala usia"
     ]
-    
+
     const categoryFeatures: { [key: string]: string[] } = {
       "Segi Empat": [...baseFeatures, "Mudah diatur dan versatile", "Tekstur halus dan jatuh elegan"],
       "Pashmina": [...baseFeatures, "Tekstur lembut dan hangat", "Cocok untuk cuaca dingin"],
@@ -194,7 +194,7 @@ function ProductDetailPage() {
       "Syari": [...baseFeatures, "Menutup dengan sempurna", "Desain syari yang elegan"],
       "Organza": [...baseFeatures, "Berkilau untuk acara formal", "Tekstur mewah dan elegan"]
     }
-    
+
     return categoryFeatures[category] || baseFeatures
   }
 
@@ -208,7 +208,7 @@ function ProductDetailPage() {
       "Pengiriman cepat, produk sesuai deskripsi. Terima kasih!",
       "Warnanya cantik banget, sesuai dengan foto. Puas belanja di sini!"
     ]
-    
+
     return Array.from({ length: Math.min(reviewCount, 6) }, (_, i) => ({
       id: i + 1,
       user: users[i % users.length],
@@ -257,7 +257,7 @@ function ProductDetailPage() {
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
               />
-              
+
               {/* Navigasi Gambar */}
               <button
                 onClick={() => handleImageNavigation('prev')}
@@ -284,11 +284,10 @@ function ProductDetailPage() {
                 <button
                   key={index}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                    selectedImageIndex === index 
-                      ? 'border-primary shadow-md' 
+                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === index
+                      ? 'border-primary shadow-md'
                       : 'border-transparent hover:border-muted-foreground'
-                  }`}
+                    }`}
                 >
                   <img
                     src={image}
@@ -311,11 +310,10 @@ function ProductDetailPage() {
                       <Star
                         key={i}
                         size={16}
-                        className={`${
-                          i < Math.floor(product.rating)
+                        className={`${i < Math.floor(product.rating)
                             ? 'text-yellow-500 fill-current'
                             : 'text-muted-foreground'
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -359,11 +357,10 @@ function ProductDetailPage() {
                   <button
                     key={index}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                      selectedColor === color
+                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${selectedColor === color
                         ? 'border-primary bg-primary/5 text-primary'
                         : 'border-muted hover:border-primary hover:bg-primary/5'
-                    }`}
+                      }`}
                     title={color}
                   >
                     {color}
@@ -382,11 +379,10 @@ function ProductDetailPage() {
                   <button
                     key={index}
                     onClick={() => setSelectedSize(size)}
-                    className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                      selectedSize === size
+                    className={`p-3 rounded-lg border text-sm font-medium transition-all ${selectedSize === size
                         ? 'border-primary bg-primary/5 text-primary'
                         : 'border-muted hover:border-primary hover:bg-primary/5'
-                    }`}
+                      }`}
                   >
                     <div>{size}</div>
                     <div className="text-xs text-muted-foreground mt-1">
@@ -459,11 +455,10 @@ function ProductDetailPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 font-medium transition-colors ${
-                  activeTab === tab.id
+                className={`px-6 py-4 font-medium transition-colors ${activeTab === tab.id
                     ? 'bg-primary text-primary-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -515,11 +510,10 @@ function ProductDetailPage() {
                         <Star
                           key={i}
                           size={16}
-                          className={`${
-                            i < Math.floor(product.rating)
+                          className={`${i < Math.floor(product.rating)
                               ? 'text-yellow-500 fill-current'
                               : 'text-muted-foreground'
-                          }`}
+                            }`}
                         />
                       ))}
                     </div>
@@ -545,18 +539,17 @@ function ProductDetailPage() {
                                 <Star
                                   key={i}
                                   size={14}
-                                  className={`${
-                                    i < review.rating
+                                  className={`${i < review.rating
                                       ? 'text-yellow-500 fill-current'
                                       : 'text-muted-foreground'
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>
                             <span className="text-sm text-muted-foreground">{review.date}</span>
                           </div>
                           <p className="text-muted-foreground">{review.comment}</p>
-                          
+
                           {review.images.length > 0 && (
                             <div className="flex gap-2 mt-3">
                               {review.images.map((image: string, index: number) => (
@@ -569,7 +562,7 @@ function ProductDetailPage() {
                               ))}
                             </div>
                           )}
-                          
+
                           <div className="flex items-center gap-4 mt-3">
                             <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
                               <ThumbsUp size={14} />

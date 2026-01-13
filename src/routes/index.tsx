@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProductResponse } from '@/features/product/types'
 import { useGetAllProduct } from '@/features/product/hooks'
@@ -17,6 +17,17 @@ import { AddToCartDialog } from '@/components/AddToCartDialog'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    const auth = await checkAuth()
+    if (auth?.user) {
+      if (auth.user.role === 'admin') {
+        throw redirect({
+          to: '/admin',
+        })
+      } 
+    }
+    return { auth }
+  },
   component: RouteComponent,
 })
 

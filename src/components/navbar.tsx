@@ -201,23 +201,13 @@ export function Navbar() {
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false)
+                            navigate({ to: '/order' })
                             // Navigate to orders page
                           }}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
                         >
                           <ShoppingCart size={16} />
                           My Orders
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setIsDropdownOpen(false)
-                            // Navigate to settings page
-                          }}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
-                        >
-                          <Settings size={16} />
-                          Settings
                         </button>
 
                         <div className="border-t border-border my-1"></div>

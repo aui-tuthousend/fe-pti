@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
 import { Navbar } from '../../components/navbar'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/button'
@@ -17,17 +17,77 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
+import { useGetCart } from '../cart/-hooks'
+import { checkAuth } from '../login/-server'
+import { User as UserType } from '../login/-utils'
+import { toast } from 'sonner'
+import { getImageUrl } from '@/config/env'
+import { CartItemWithVariant } from '../cart/-types'
+import { useCreateOrder } from '../admin/order/-hooks'
 
 export const Route = createFileRoute('/checkout/')({
   component: RouteComponent,
+  validateSearch: (search: Record<string, unknown>): { items?: string } => {
+    return {
+      items: typeof search.items === 'string' ? search.items : undefined
+    }
+  }
 })
 
 function RouteComponent() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const navigate = useNavigate()
+  const search = Route.useSearch()
+  const [user, setUser] = useState<UserType | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [message, setMessage] = useState('')
   const [selectedPayment, setSelectedPayment] = useState('COD')
   const [showAllItems, setShowAllItems] = useState(false)
+
+  // Use the mutation hook
+  const { mutateAsync: createOrder, isPending: isSubmittingOrder } = useCreateOrder()
+
+  // Parse selected cart item IDs from search params
+  const selectedCartItemIds = search.items ? search.items.split(',') : []
+
+  // Fetch user session
+  useEffect(() => {
+    const fetchUser = async () => {
+      const auth = await checkAuth()
+      if (auth?.user) {
+        setUser(auth.user)
+        // Initialize userInfo with user data if available
+        if (auth.user?.name) {
+          setUserInfo(prev => ({
+            ...prev,
+            name: auth.user?.name || prev.name
+          }))
+          setTempUserInfo(prev => ({
+            ...prev,
+            name: auth.user?.name || prev.name
+          }))
+        }
+      } else {
+        navigate({ to: '/login' })
+      }
+    }
+    fetchUser()
+  }, [navigate])
+
+  // Redirect if no items selected
+  useEffect(() => {
+    if (selectedCartItemIds.length === 0) {
+      toast.error('Tidak ada item yang dipilih')
+      navigate({ to: '/cart' })
+    }
+  }, [selectedCartItemIds, navigate])
+
+  // Fetch cart data
+  const { data: cartData, isLoading: isLoadingCart } = useGetCart(user?.token ?? null)
+
+  // Filter only selected items
+  const selectedItems: CartItemWithVariant[] = cartData?.items?.filter(item =>
+    selectedCartItemIds.includes(item.uuid)
+  ) || []
 
   // State untuk data diri
   const [userInfo, setUserInfo] = useState({
@@ -42,57 +102,12 @@ function RouteComponent() {
   // Temporary state untuk edit
   const [tempUserInfo, setTempUserInfo] = useState(userInfo)
 
-  const handleMenuClick = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  // Data order (dari cart)
-  const orderData = {
-    subtotal: 225000,
-    shipping: 10000,
-    serviceFee: 1000,
-    discount: 22477,
-    total: 213523
-  }
-
-  // Cart items untuk ditampilkan
-  const cartItems = [
-    {
-      id: 1,
-      name: "Hijab Segi Empat Premium",
-      price: 89000,
-      quantity: 2,
-      image: "/user/modelhijab.jpg"
-    },
-    {
-      id: 2,
-      name: "Pashmina Kasmir Elegan",
-      price: 125000,
-      quantity: 1,
-      image: "/user/modelhijab.jpg"
-    },
-    {
-      id: 3,
-      name: "Bergo Instant Daily",
-      price: 65000,
-      quantity: 1,
-      image: "/user/modelhijab.jpg"
-    },
-    {
-      id: 4,
-      name: "Hijab Voal Polos",
-      price: 75000,
-      quantity: 2,
-      image: "/user/modelhijab.jpg"
-    },
-    {
-      id: 5,
-      name: "Kerudung Syari",
-      price: 95000,
-      quantity: 1,
-      image: "/user/modelhijab.jpg"
-    }
-  ]
+  // Calculate order totals from real data
+  const subtotal = selectedItems.reduce((total, item) => total + (item.variant.price * item.quantity), 0)
+  const shippingFee = 10000 // Fixed shipping for now
+  const serviceFee = 1000 // Fixed service fee
+  const discount = 0 // No discount for now
+  const total = subtotal + shippingFee + serviceFee - discount
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -112,11 +127,64 @@ function RouteComponent() {
     setShowEditModal(false)
   }
 
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      toast.error('Anda harus login terlebih dahulu')
+      navigate({ to: '/login' })
+      return
+    }
+
+    try {
+      await createOrder({
+        token: user.token,
+        cartItemIds: selectedCartItemIds,
+        shipping_name: userInfo.name,
+        shipping_phone: userInfo.phone,
+        shipping_address: userInfo.address,
+        shipping_city: userInfo.city,
+        shipping_province: userInfo.province,
+        shipping_postcode: userInfo.postalCode,
+        shipping_notes: message || undefined,
+        payment_method: selectedPayment
+      })
+
+      toast.success('Pesanan berhasil dibuat!', {
+        description: 'Anda akan segera dihubungi untuk konfirmasi pembayaran'
+      })
+
+      // Redirect to home or order confirmation page
+      setTimeout(() => {
+        navigate({ to: '/' })
+      }, 1500)
+    } catch (error) {
+      console.error('Error creating order:', error)
+      toast.error('Gagal membuat pesanan', {
+        description: 'Silakan coba lagi'
+      })
+    }
+  }
+
   const paymentMethods = [
     { id: 'COD', name: 'Cash on Delivery', icon: '💰' },
     { id: 'BANK', name: 'Bank Transfer', icon: '🏦' },
     { id: 'CREDIT', name: 'Credit Card', icon: '💳' }
   ]
+
+  if (!user || isLoadingCart) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Memuat...</h2>
+            <p className="text-muted-foreground">Mohon tunggu sebentar</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,30 +258,38 @@ function RouteComponent() {
             <div className="bg-card border border-primary rounded-lg p-6 shadow-sm">
               <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5" />
-                Item Pesanan ({cartItems.length} item)
+                Item Pesanan ({selectedItems.length} item)
               </h2>
 
               <div className="space-y-4">
-                {(showAllItems ? cartItems : cartItems.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="flex gap-4 items-center">
-                    <div className="w-16 h-16 flex-shrink-0">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-foreground">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">{formatPrice(item.price * item.quantity)}</p>
-                    </div>
-                  </div>
-                ))}
+                {(showAllItems ? selectedItems : selectedItems.slice(0, 2)).map((item) => {
+                  const imageUrl = item.variant.images && item.variant.images.length > 0
+                    ? getImageUrl(item.variant.images[0].url) ?? '/user/modelhijab.jpg'
+                    : '/user/modelhijab.jpg'
 
-                {cartItems.length > 2 && (
+                  return (
+                    <div key={item.uuid} className="flex gap-4 items-center">
+                      <div className="w-16 h-16 flex-shrink-0">
+                        <img
+                          src={imageUrl}
+                          alt={item.variant.title}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-foreground">{item.variant.product.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {item.variant.title} • Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-primary">{formatPrice(item.variant.price * item.quantity)}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {selectedItems.length > 2 && (
                   <div className="pt-2 border-t border-border">
                     <Button
                       onClick={() => setShowAllItems(!showAllItems)}
@@ -229,7 +305,7 @@ function RouteComponent() {
                       ) : (
                         <>
                           <ChevronDown className="w-4 h-4" />
-                          Lihat Lainnya ({cartItems.length - 2} item)
+                          Lihat Lainnya ({selectedItems.length - 2} item)
                         </>
                       )}
                     </Button>
@@ -268,7 +344,7 @@ function RouteComponent() {
                     </div>
                     <span className="font-medium text-foreground">J&T Express</span>
                   </div>
-                  <span className="font-bold text-primary">{formatPrice(10000)}</span>
+                  <span className="font-bold text-primary">{formatPrice(shippingFee)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">Estimasi 2-3 hari kerja</p>
               </div>
@@ -307,37 +383,50 @@ function RouteComponent() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Order Subtotal</span>
-                  <span className="font-medium">{formatPrice(orderData.subtotal)}</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping Fee</span>
-                  <span className="font-medium">{formatPrice(orderData.shipping)}</span>
+                  <span className="font-medium">{formatPrice(shippingFee)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Service Fee</span>
-                  <span className="font-medium">{formatPrice(orderData.serviceFee)}</span>
+                  <span className="font-medium">{formatPrice(serviceFee)}</span>
                 </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-success">Discount (5%)</span>
-                  <span className="font-medium text-success">-{formatPrice(orderData.discount)}</span>
-                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-success">Discount</span>
+                    <span className="font-medium text-success">-{formatPrice(discount)}</span>
+                  </div>
+                )}
 
                 <hr className="border-border" />
 
                 <div className="flex justify-between text-lg font-bold pt-2">
                   <span className="text-foreground">Order Total</span>
-                  <span className="text-primary">{formatPrice(orderData.total)}</span>
+                  <span className="text-primary">{formatPrice(total)}</span>
                 </div>
               </div>
 
               <Button
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2"
+                onClick={handlePlaceOrder}
+                disabled={isSubmittingOrder}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                <CreditCard size={18} />
-                Place Order
+                {isSubmittingOrder ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={18} />
+                    Place Order
+                  </>
+                )}
               </Button>
 
               <div className="mt-4 text-xs text-muted-foreground text-center">

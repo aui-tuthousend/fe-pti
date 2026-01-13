@@ -71,7 +71,6 @@ function RouteComponent() {
     }
   }
 
-  // Fungsi untuk update quantity
   const updateQuantity = async (uuid: string, newQuantity: number) => {
     if (newQuantity === 0) {
       handleDeleteClick(uuid)
@@ -93,9 +92,9 @@ function RouteComponent() {
       // Refetch cart data
       queryClient.invalidateQueries({ queryKey: ['cart', user.token] })
 
-      toast.success('Berhasil', {
-        description: 'Quantity berhasil diupdate'
-      })
+      // toast.success('Berhasil', {
+      //   description: 'Quantity berhasil diupdate'
+      // })
     } catch (error) {
       console.error('Error updating quantity:', error)
       toast.error('Gagal', {
@@ -433,21 +432,24 @@ function RouteComponent() {
                 </div>
 
                 {/* Checkout Button */}
-                <Link
-                  to="/checkout"
-                  className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
-                >
-                  <Button
-                    disabled={selectedItems.length === 0 || subtotal === 0}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
-                  >
-                    <ShoppingBag size={18} />
-                    {selectedItems.length === 0
-                      ? 'Pilih item untuk checkout'
-                      : `Checkout ${selectedItems.length} item`
+                <Button
+                  disabled={selectedItems.length === 0 || subtotal === 0}
+                  onClick={() => {
+                    if (selectedItems.length > 0) {
+                      navigate({
+                        to: '/checkout',
+                        search: { items: selectedItems.join(',') }
+                      })
                     }
-                  </Button>
-                </Link>
+                  }}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+                >
+                  <ShoppingBag size={18} />
+                  {selectedItems.length === 0
+                    ? 'Pilih item untuk checkout'
+                    : `Checkout ${selectedItems.length} item`
+                  }
+                </Button>
 
                 {/* Additional Info */}
                 <div className="mt-4 text-xs text-muted-foreground text-center">
@@ -551,22 +553,25 @@ function RouteComponent() {
                 </div>
 
                 {/* Checkout Button - Mobile */}
-                <Link
-                  to="/checkout"
-                  className={selectedItems.length === 0 || subtotal === 0 ? 'pointer-events-none' : ''}
-                >
-                  <Button
-                    disabled={selectedItems.length === 0 || subtotal === 0}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
-                    onClick={() => setShowMobileSummary(false)}
-                  >
-                    <ShoppingBag size={18} />
-                    {selectedItems.length === 0
-                      ? 'Pilih item untuk checkout'
-                      : `Checkout ${selectedItems.length} item`
+                <Button
+                  disabled={selectedItems.length === 0 || subtotal === 0}
+                  onClick={() => {
+                    setShowMobileSummary(false)
+                    if (selectedItems.length > 0) {
+                      navigate({
+                        to: '/checkout',
+                        search: { items: selectedItems.join(',') }
+                      })
                     }
-                  </Button>
-                </Link>
+                  }}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+                >
+                  <ShoppingBag size={18} />
+                  {selectedItems.length === 0
+                    ? 'Pilih item untuk checkout'
+                    : `Checkout ${selectedItems.length} item`
+                  }
+                </Button>
 
                 {/* Additional Info - Mobile */}
                 <div className="mt-4 text-xs text-muted-foreground text-center">
