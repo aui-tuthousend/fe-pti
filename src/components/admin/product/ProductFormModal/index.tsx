@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useProductStore } from '@/features/product/hooks'
 import { uploadVariantImage } from '@/features/variant/hooks'
+import { variantService } from '@/features/variant/service'
 import { urlBuilder } from '@/lib/utils'
 import BasicInfoForm from './BasicInfoForm'
 import ProductImageManager from './ProductImageManager'
@@ -77,7 +78,7 @@ export default function ProductFormModal({
     const [pendingDeleteProductImages, setPendingDeleteProductImages] = useState<PendingDeleteImage[]>([])
     const [pendingDeleteVariantImages, setPendingDeleteVariantImages] = useState<Record<number, PendingDeleteImage[]>>({})
 
-    const { UploadFileAndGetUrl } = useProductStore()
+    const { UploadFileAndGetUrl, GetProductDetail } = useProductStore()
 
     // Get auth from context - we'll need to pass this through props or use context
     // For now, we'll access it via window or pass it as prop
@@ -106,6 +107,7 @@ export default function ProductFormModal({
         setFormData(prev => ({
             ...prev,
             variants: [...prev.variants, {
+                productId: product?.uuid, // Set productId for new variants
                 title: '',
                 price: 0,
                 sku: '',
@@ -576,26 +578,84 @@ export default function ProductFormModal({
                 }
 
                 // Build payload WITHOUT images field
-                const cleanedVariants = formData.variants.map(({ productId, images, ...variant }) => ({
-                    ...variant
-                }))
+                // Separate existing variants (with uuid) from new variants (without uuid)
+                const existingVariants = formData.variants
+                    .filter(v => v.uuid)
+                    .map(({ images, productId, ...variant }) => variant);
 
+                const newVariants = formData.variants
+                    .filter(v => !v.uuid)
+                    .map(({ images, ...variant }) => ({
+                        ...variant,
+                        productId: variant.productId || product?.uuid
+                    }));
+
+                // Update product with existing variants only
                 const payload: ProductRequest = {
                     ...formDataWithoutImages,
                     tags,
-                    variants: cleanedVariants
+                    variants: existingVariants
                 }
 
-                // Submit to API
+                // Submit product update to API
                 await onSubmit(payload)
 
-                // Clear pending images and reload to get fresh data
+                // Create new variants and upload their images using VariantService
+                if (newVariants.length > 0) {
+                    // Create variants in batch
+                    const { successTitles, errors } = await variantService.createVariantsBatch(newVariants, auth.user!.token);
+
+                    // Show success/error toasts
+                    successTitles.forEach(title => {
+                        toast.success(`Variant "${title}" created successfully`);
+                    });
+                    errors.forEach(({ title, error }) => {
+                        console.error(`Failed to create variant "${title}":`, error);
+                        toast.error(`Failed to create variant "${title}"`);
+                    });
+
+                    // Upload images for newly created variants
+                    if (successTitles.length > 0 && onReload) {
+                        await onReload();
+
+                        // Get fresh product data
+                        const freshProductResponse = await GetProductDetail(product.uuid);
+                        const freshProduct = freshProductResponse.data;
+
+                        // Upload pending images using service helper
+                        const uploadResults = await variantService.uploadImagesForNewVariants(
+                            formData.variants,
+                            freshProduct.variants || [],
+                            pendingVariantImages,
+                            successTitles,
+                            auth.user!.token
+                        );
+
+                        // Show upload results
+                        uploadResults.results.forEach(({ variantTitle, success, failed }) => {
+                            if (success > 0) {
+                                toast.success(`${success} image(s) uploaded for variant "${variantTitle}"`);
+                            }
+                            if (failed > 0) {
+                                toast.warning(`${failed} image(s) failed to upload for variant "${variantTitle}"`);
+                            }
+                        });
+
+                        // Final reload to update UI with uploaded images
+                        if (onReload) {
+                            await onReload();
+                        }
+                    }
+                }
+
+                // Clear pending images
                 setPendingProductImages([])
                 setPendingVariantImages({})
                 setPendingDeleteProductImages([])
                 setPendingDeleteVariantImages({})
 
-                if (onReload) {
+                // Final reload if not already done
+                if (onReload && newVariants.length === 0) {
                     await onReload()
                 }
             }

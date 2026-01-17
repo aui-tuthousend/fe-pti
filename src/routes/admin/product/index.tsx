@@ -203,8 +203,12 @@ function RouteComponent() {
           onSubmit={(data) => handleUpdateProduct(selectedProduct.uuid, data)}
           isLoading={isLoading}
           onReload={async () => {
+            // Reload product detail for modal
             const response = await GetProductDetail(selectedProduct.uuid)
             setSelectedProduct(response.data)
+
+            // Reload product list for table to show updated variant count
+            await GetPaginatedProducts('', currentPage, 10)
           }}
         />
       )}

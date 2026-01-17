@@ -165,7 +165,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
   },
 
-  UploadImage: async (token, uuid, file, alt_text, position) => {
+  UploadImage: async (token, uuid, file, alt_text) => {
     set({ loading: true });
     try {
       const formData = new FormData();

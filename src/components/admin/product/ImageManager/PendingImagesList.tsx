@@ -26,7 +26,7 @@ export default function PendingImagesList({
                                 <img
                                     src={URL.createObjectURL(img.file)}
                                     alt="Pending"
-                                    className={`${isProduct ? 'w-full h-28' : 'w-full h-28'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 border-dashed border-amber-400 dark:border-amber-600 shadow-sm`}
+                                    className={`${isProduct ? 'w-full h-40' : 'w-full h-40'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 border-dashed border-amber-400 dark:border-amber-600 shadow-sm`}
                                 />
                                 <button
                                     type="button"
@@ -63,7 +63,7 @@ export default function PendingImagesList({
                                 <img
                                     src={getImageUrl(img.url) || ''}
                                     alt="Pending Delete"
-                                    className={`${isProduct ? 'w-full h-28' : 'w-full h-28'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 border-dashed border-red-400 dark:border-red-600 shadow-sm grayscale`}
+                                    className={`${isProduct ? 'w-full h-40' : 'w-full h-40'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 border-dashed border-red-400 dark:border-red-600 shadow-sm grayscale`}
                                 />
                                 <button
                                     type="button"

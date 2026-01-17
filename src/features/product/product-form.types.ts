@@ -1,5 +1,8 @@
 import type { ProductRequest } from '@/features/product/types'
 
+// Re-export variant types from variant-form.types for backward compatibility
+export type { VariantImage, VariantFormData, VariantFormProps } from '@/features/variant/variant-form.types'
+
 // Pending image upload type
 export interface PendingImage {
     file: File
@@ -19,26 +22,7 @@ export interface ProductImage {
     position?: number
 }
 
-// Variant image type
-export interface VariantImage {
-    url: string
-    alt_text?: string
-    position?: number
-}
 
-// Variant form data
-export interface VariantFormData {
-    uuid?: string
-    productId?: string
-    title: string
-    price: number
-    sku: string
-    inventory_policy: string
-    option1: string
-    available: number
-    cost: number
-    images?: VariantImage[]
-}
 
 // Product form data
 export interface ProductFormData extends Omit<ProductRequest, 'variants'> {
@@ -103,26 +87,7 @@ export interface ProductImageManagerProps {
     isUploading: boolean
 }
 
-// Variant form props
-export interface VariantFormProps {
-    variant: VariantFormData
-    index: number
-    canRemove: boolean
-    onUpdate: (index: number, field: string, value: any) => void
-    onRemove: (index: number) => void
-    variantImages: VariantImage[]
-    pendingImages: PendingImage[]
-    pendingDeletes: PendingDeleteImage[]
-    onImageUpload: (variantIndex: number, e: React.ChangeEvent<HTMLInputElement>) => void
-    onImageRemove: (variantIndex: number, imageIndex: number) => void
-    onRemovePendingImage: (variantIndex: number, imageIndex: number) => void
-    onUndoDeleteImage: (variantIndex: number, imageIndex: number) => void
-    onSetFeaturedImage: (variantIndex: number, imageIndex: number) => Promise<void>
-    isUploading: boolean
-    product?: any
-    auth?: any
-    onReload?: () => Promise<void>
-}
+
 
 // Variant list props
 export interface VariantListProps {

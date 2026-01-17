@@ -24,7 +24,7 @@ export default function ImageGallery({
                         <img
                             src={getImageUrl(img.url) || ''}
                             alt={img.alt_text || imageType}
-                            className={`${isProduct ? 'w-full h-28' : 'w-full h-28'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 ${isProduct
+                            className={`${isProduct ? 'w-full h-40' : 'w-full h-40'} object-cover ${isProduct ? 'rounded-lg' : 'rounded-md'} border-2 ${isProduct
                                 ? 'border-blue-300 dark:border-blue-700'
                                 : 'border-purple-300 dark:border-purple-700'
                                 } shadow-sm`}

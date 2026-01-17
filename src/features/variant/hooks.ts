@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useState, useEffect } from 'react';
 import { checkAuth } from '@/routes/login/-server';
 import { fetchServer } from '@/lib/fetchServer';
 import { urlBuilder } from "@/lib/utils";
@@ -16,6 +17,8 @@ interface VariantStore {
 
   setModel: (model?: Variant | VariantRequest) => void;
   CreateVariant: (token: string, payload: VariantRequest) => Promise<any>;
+  UpdateVariant: (token: string, uuid: string, payload: Partial<VariantRequest>) => Promise<any>;
+  GetVariantDetail: (uuid: string) => Promise<any>;
   GetListVariant: (token: string) => Promise<any>;
 }
 
@@ -92,6 +95,59 @@ export const useVariantStore = create<VariantStore>((set, get) => ({
       return response;
     } catch (error) {
       console.error('Error creating variant:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  UpdateVariant: async (token, uuid, payload) => {
+    set({ loading: true });
+    try {
+      console.log('UpdateVariant Payload:', JSON.stringify(payload));
+      const response = await fetchServer(token, urlBuilder(`/variants/${uuid}`), {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      console.log('UpdateVariant Response:', response);
+
+      // Update the variant in the list if it exists
+      const currentList = get().list;
+      const updatedList = currentList.map(v =>
+        v.uuid === uuid ? { ...v, ...response.data } : v
+      );
+      set({ list: updatedList });
+
+      return response;
+    } catch (error) {
+      console.error('Error updating variant:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  GetVariantDetail: async (uuid) => {
+    set({ loading: true });
+    try {
+      const response = await fetch(urlBuilder(`/variants/${uuid}`), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Variant detail response:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error getting variant detail:', error);
       throw error;
     } finally {
       set({ loading: false });
@@ -188,5 +244,39 @@ export function useCreateVariant() {
       return CreateVariant(token, variantData);
     },
     isPending: loading,
+  };
+}
+
+export function useUpdateVariant() {
+  const { UpdateVariant, loading } = useVariantStore();
+
+  return {
+    mutateAsync: async (uuid: string, variantData: Partial<VariantRequest>) => {
+      const session = await checkAuth();
+      const token = session?.user?.token || '';
+      return UpdateVariant(token, uuid, variantData);
+    },
+    isPending: loading,
+  };
+}
+
+export function useGetVariantDetail(uuid: string) {
+  const { GetVariantDetail, loading } = useVariantStore();
+  const [variant, setVariant] = useState<Variant | null>(null);
+
+  useEffect(() => {
+    if (uuid) {
+      GetVariantDetail(uuid).then((data) => {
+        setVariant(data.data);
+      }).catch((error) => {
+        console.error('Error fetching variant detail:', error);
+      });
+    }
+  }, [uuid, GetVariantDetail]);
+
+  return {
+    data: variant,
+    isLoading: loading,
+    refetch: () => GetVariantDetail(uuid),
   };
 }

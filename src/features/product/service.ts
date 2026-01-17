@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../../config/env';
 import { ProductResponse, ProductRequest, PaginatedProductsResponse } from './types';
+import type { PendingImage } from './product-form.types';
 
 export class ProductService {
     private readonly baseUrl = `${API_BASE_URL}/api/products`;
@@ -104,6 +105,114 @@ export class ProductService {
 
         const data = await response.json();
         return data.data;
+    }
+
+    /**
+     * Upload product image
+     */
+    async uploadProductImage(
+        productUuid: string,
+        file: File,
+        token: string,
+        alt_text?: string,
+        position?: number
+    ): Promise<{ url: string; alt_text?: string; position?: number }> {
+        const formData = new FormData();
+        formData.append('image', file);
+        if (alt_text) formData.append('alt_text', alt_text);
+        if (position !== undefined && !isNaN(position)) formData.append('position', position.toString());
+
+        const response = await fetch(`${this.baseUrl}/${productUuid}/images/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.errors || `Upload failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return {
+            url: data.data.url,
+            alt_text: data.data.alt_text,
+            position: data.data.position,
+        };
+    }
+
+    /**
+     * Delete product image
+     */
+    async deleteProductImage(productUuid: string, imageId: string, token: string): Promise<boolean> {
+        const response = await fetch(`${this.baseUrl}/${productUuid}/images/${imageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to delete image: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.data;
+    }
+
+    /**
+     * Upload multiple product images in batch
+     */
+    async uploadProductImagesBatch(
+        productUuid: string,
+        images: PendingImage[],
+        token: string
+    ): Promise<{ successCount: number; failCount: number; errors: string[] }> {
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        for (const img of images) {
+            try {
+                await this.uploadProductImage(productUuid, img.file, token, img.alt_text, undefined);
+                successCount++;
+            } catch (error: any) {
+                console.error('Failed to upload product image:', error);
+                failCount++;
+                errors.push(error.message || 'Unknown error');
+            }
+        }
+
+        return { successCount, failCount, errors };
+    }
+
+    /**
+     * Delete multiple product images in batch
+     */
+    async deleteProductImagesBatch(
+        productUuid: string,
+        imageIds: Array<{ uuid: string; url: string }>,
+        token: string
+    ): Promise<{ successCount: number; failCount: number; errors: string[] }> {
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        for (const img of imageIds) {
+            try {
+                await this.deleteProductImage(productUuid, img.uuid, token);
+                successCount++;
+            } catch (error: any) {
+                console.error('Failed to delete product image:', error);
+                failCount++;
+                errors.push(error.message || 'Unknown error');
+            }
+        }
+
+        return { successCount, failCount, errors };
     }
 }
 
