@@ -207,7 +207,7 @@ export function Navbar() {
                           className="flex items-center gap-3 px-4 py-2 text-sm text-primary hover:bg-primary/10 transition-colors w-full text-left"
                         >
                           <ShoppingCart size={16} />
-                          My Orders
+                          Riwayat Pembelian
                         </button>
 
                         <div className="border-t border-border my-1"></div>

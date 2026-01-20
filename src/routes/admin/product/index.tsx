@@ -139,14 +139,14 @@ function RouteComponent() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4 md:p-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold">Product Management</h1>
           <p className="text-muted-foreground">Manage your products, variants, and inventory</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2">
+        <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto">
           <Plus size={20} />
           Add Product
         </Button>

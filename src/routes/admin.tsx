@@ -34,13 +34,11 @@ function RouteComponent() {
   return (
     <SidebarProvider>
       <AdminSidebar user={auth.user} />
-      <main className="w-full">
+      <main className="w-full overflow-x-hidden">
         <div className="p-2">
           <SidebarTrigger />
         </div>
-        <div className="p-6">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </SidebarProvider>
   )

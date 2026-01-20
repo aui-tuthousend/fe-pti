@@ -102,7 +102,7 @@ export default function VariantForm({
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label className="block text-sm font-medium mb-1">Variant Title *</label>
                     <input
@@ -168,7 +168,7 @@ export default function VariantForm({
             {/* Inventory Item */}
             <div className="border-t pt-3 mt-3">
                 <h5 className="text-sm font-medium mb-2">Inventory Details</h5>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label className="block text-sm font-medium mb-1">Available Quantity *</label>
                         <input

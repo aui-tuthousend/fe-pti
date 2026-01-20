@@ -670,7 +670,7 @@ export default function ProductFormModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full my-8">
+            <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full my-8 overflow-hidden">
                 {/* Modal Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <h2 className="text-2xl font-bold">{title}</h2>
@@ -680,7 +680,7 @@ export default function ProductFormModal({
                 </div>
 
                 {/* Modal Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto overflow-x-hidden">
                     <BasicInfoForm
                         formData={formData}
                         onUpdate={updateField}
