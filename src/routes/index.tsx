@@ -8,10 +8,10 @@ import { Heart, ShoppingCart, Star } from 'lucide-react'
 import { checkAuth } from './login/-server'
 import { User } from './login/-utils'
 import { Footer } from '@/components/Footer'
-import { FeaturedCategories } from '@/components/FeaturedCategories'
+// import { FeaturedCategories } from '@/components/FeaturedCategories'
 import { ProductGridSkeleton } from '@/components/SkeletonLoader'
-import { Testimonials } from '@/components/Testimonials'
-import { Newsletter } from '@/components/Newsletter'
+// import { Testimonials } from '@/components/Testimonials'
+// import { Newsletter } from '@/components/Newsletter'
 import { getImageUrl } from '@/config/env'
 import { AddToCartDialog } from '@/components/AddToCartDialog'
 import { toast } from 'sonner'
@@ -114,12 +114,14 @@ function RouteComponent() {
               {getSubtitle()}
             </p>
             <div className="flex justify-start ml-4 mt-8">
+             <Link to="/catalog">
               <Button
                 size="lg"
                 className="bg-secondary hover:bg-primary/30 text-primary-foreground px-10 py-4 text-lg font-bold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border-2 border-primary hover:border-primary/80"
               >
                 {user ? 'Explore Your Collection' : 'Jelajahi Koleksi'}
               </Button>
+             </Link>
             </div>
           </div>
         </div>

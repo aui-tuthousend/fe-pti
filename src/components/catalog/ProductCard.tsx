@@ -1,27 +1,14 @@
 import { Link } from '@tanstack/react-router'
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-interface Product {
-    id: number
-    name: string
-    category: string
-    price: number
-    originalPrice: number
-    discount: number
-    rating: number
-    reviews: number
-    image: string
-    description: string
-    stock: number
-    isBestseller: boolean
-}
+import { ProductResponse } from '@/features/product/types'
+import { getImageUrl } from '@/config/env'
 
 interface ProductCardProps {
-    product: Product
+    product: ProductResponse
     isInWishlist: boolean
-    onToggleWishlist: (id: number) => void
-    onQuickView?: (product: Product) => void
+    onToggleWishlist: (uuid: string) => void
+    onQuickView?: (product: ProductResponse) => void
 }
 
 export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickView }: ProductCardProps) {
@@ -33,31 +20,39 @@ export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickVi
         }).format(price)
     }
 
+    const totalStock = product.variants?.reduce((sum, v) => sum + (v.available || 0), 0) || 0
+    const prices = product.variants?.map(v => v.price).filter(Boolean) || [0]
+    const minPrice = Math.min(...prices)
+    const primaryImage = getImageUrl(product.images?.[0]?.url) || "/user/modelhijab.jpg"
+
     return (
         <div className="bg-card border border-primary/10 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group hover:scale-[1.02]">
             <div className="relative">
                 <img
-                    src={product.image}
-                    alt={product.name}
+                    src={primaryImage}
+                    alt={product.title}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/user/modelhijab.jpg'
+                    }}
                 />
                 <div className="absolute top-3 left-3 flex flex-col gap-2">
-                    {product.discount > 0 && (
-                        <span className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                            -{product.discount}%
+                    {product.status === 'active' && totalStock > 0 && (
+                        <span className="bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                            Tersedia
                         </span>
                     )}
-                    {product.isBestseller && (
-                        <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                            Terlaris
+                    {totalStock === 0 && (
+                        <span className="bg-gray-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                            Habis
                         </span>
                     )}
                 </div>
                 <button
-                    onClick={() => onToggleWishlist(product.id)}
+                    onClick={() => onToggleWishlist(product.uuid)}
                     className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isInWishlist
-                            ? 'bg-red-500 text-white'
-                            : 'bg-white/80 text-gray-600 hover:bg-red-500 hover:text-white'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/80 text-gray-600 hover:bg-red-500 hover:text-white'
                         }`}
                 >
                     <Heart className={`w-4 h-4 ${isInWishlist ? 'fill-current' : ''}`} />
@@ -76,15 +71,16 @@ export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickVi
                         )}
                         <Link
                             to="/catalog/$productId"
-                            params={{ productId: product.id.toString() }}
-                            onClick={() => localStorage.setItem('selectedProductId', product.id.toString())}
+                            params={{ productId: product.uuid }}
+                            onClick={() => localStorage.setItem('selectedProductId', product.uuid)}
                         >
                             <Button
                                 size="sm"
                                 className="bg-primary hover:bg-primary/90"
+                                disabled={totalStock === 0}
                             >
                                 <ShoppingCart className="w-4 h-4 mr-1" />
-                                Beli
+                                {totalStock > 0 ? 'Beli' : 'Habis'}
                             </Button>
                         </Link>
                     </div>
@@ -92,30 +88,43 @@ export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickVi
             </div>
 
             <div className="p-4">
-                <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{product.name}</h3>
+                {product.tags && product.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                        {product.tags.slice(0, 5).map((tag, index) => (
+                            <span key={index} className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{product.title}</h3>
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
 
                 <div className="flex items-center gap-2 mb-3">
                     <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span className="text-sm font-medium">{product.rating}</span>
+                        <span className="text-sm font-medium">4.5</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">({product.reviews} ulasan)</span>
+                    <span className="text-sm text-muted-foreground">(0 ulasan)</span>
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">
-                    <span className="font-bold text-lg text-primary">{formatPrice(product.price)}</span>
-                    {product.originalPrice > product.price && (
-                        <span className="text-sm text-muted-foreground line-through">
-                            {formatPrice(product.originalPrice)}
-                        </span>
-                    )}
+                    <span className="font-bold text-lg text-primary">{formatPrice(minPrice)}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Stok: {product.stock}</span>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">{product.category}</span>
+                    <span className={`text-sm ${totalStock > 0 ? 'text-muted-foreground' : 'text-red-500 font-medium'}`}>
+                        {totalStock > 0 ? `Stok: ${totalStock}` : 'Stok Habis'}
+                    </span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded">{product.product_type}</span>
                 </div>
+
+                {product.vendor && (
+                    <div className="mt-2 pt-2 border-t border-muted">
+                        <span className="text-xs text-muted-foreground">Vendor: {product.vendor}</span>
+                    </div>
+                )}
             </div>
         </div>
     )

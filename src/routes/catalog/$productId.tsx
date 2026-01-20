@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/navbar'
+import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/button'
+import { useProductStore } from '@/features/product/hooks'
+import { getImageUrl } from '@/config/env'
 import {
   Heart,
   Share2,
@@ -13,7 +16,9 @@ import {
   ChevronRight,
   User,
   ThumbsUp,
-  MessageCircle
+  MessageCircle,
+  Loader2,
+  Package
 } from 'lucide-react'
 
 export const Route = createFileRoute('/catalog/$productId')({
@@ -21,204 +26,38 @@ export const Route = createFileRoute('/catalog/$productId')({
 })
 
 function ProductDetailPage() {
-  // Ambil productId dari URL params atau localStorage sebagai fallback
   const params = useParams({ from: '/catalog/$productId' })
-  const productId = params.productId || localStorage.getItem('selectedProductId') || "1"
+  const productId = params.productId || localStorage.getItem('selectedProductId') || ""
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
-  const [selectedColor, setSelectedColor] = useState('')
-  const [selectedSize, setSelectedSize] = useState('')
+  const [selectedVariant, setSelectedVariant] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [isWishlisted, setIsWishlisted] = useState(false)
 
-  // Data produk yang sama dengan katalog
-  const products = [
-    {
-      id: 1,
-      name: "Hijab Segi Empat Premium Silk",
-      category: "Segi Empat",
-      price: 89000,
-      originalPrice: 120000,
-      discount: 26,
-      rating: 4.8,
-      reviews: 124,
-      colors: ["Dusty Pink", "Navy", "Cream", "Black"],
-      sizes: ["110x110cm"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Hijab segi empat premium dengan bahan silk berkualitas tinggi",
-      stock: 15,
-      isBestseller: true
-    },
-    {
-      id: 2,
-      name: "Pashmina Kasmir Elegan",
-      category: "Pashmina",
-      price: 125000,
-      originalPrice: 180000,
-      discount: 31,
-      rating: 4.9,
-      reviews: 89,
-      colors: ["Navy Blue", "Maroon", "Grey", "Beige"],
-      sizes: ["75x200cm"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Pashmina kasmir dengan tekstur lembut dan hangat",
-      stock: 8,
-      isBestseller: false
-    },
-    {
-      id: 3,
-      name: "Bergo Instant Daily Comfort",
-      category: "Bergo",
-      price: 65000,
-      originalPrice: 85000,
-      discount: 24,
-      rating: 4.6,
-      reviews: 203,
-      colors: ["Cream", "Brown", "Black", "Navy"],
-      sizes: ["One Size"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Bergo instant dengan bahan jersey premium untuk pemakaian sehari-hari",
-      stock: 25,
-      isBestseller: true
-    },
-    {
-      id: 4,
-      name: "Hijab Voal Polos Premium",
-      category: "Voal",
-      price: 75000,
-      originalPrice: 95000,
-      discount: 21,
-      rating: 4.7,
-      reviews: 156,
-      colors: ["White", "Cream", "Pink", "Blue"],
-      sizes: ["115x115cm"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Hijab voal dengan bahan ringan dan adem untuk cuaca tropis",
-      stock: 18,
-      isBestseller: false
-    },
-    {
-      id: 5,
-      name: "Kerudung Syari Wolfis",
-      category: "Syari",
-      price: 95000,
-      originalPrice: 120000,
-      discount: 21,
-      rating: 4.5,
-      reviews: 67,
-      colors: ["Black", "Navy", "Brown", "Grey"],
-      sizes: ["One Size"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Kerudung syari dengan bahan wolfis untuk tampilan yang lebih menutup",
-      stock: 12,
-      isBestseller: false
-    },
-    {
-      id: 6,
-      name: "Hijab Organza Glitter Party",
-      category: "Organza",
-      price: 145000,
-      originalPrice: 200000,
-      discount: 28,
-      rating: 4.8,
-      reviews: 45,
-      colors: ["Gold", "Silver", "Rose Gold", "Champagne"],
-      sizes: ["120x120cm"],
-      image: "/user/modelhijab.jpg",
-      images: ["/user/modelhijab.jpg", "/user/modelhijab.jpg"],
-      description: "Hijab organza dengan sentuhan glitter untuk acara formal",
-      stock: 6,
-      isBestseller: false
-    }
-  ]
+  const { GetProductDetail, loading } = useProductStore()
+  const [product, setProduct] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  // Cari produk berdasarkan ID
-  const product = products.find(p => p.id === parseInt(productId)) || products[0]
-
-  // Atur pilihan default
   useEffect(() => {
-    if (!selectedColor && product.colors.length > 0) {
-      setSelectedColor(product.colors[0])
+    if (productId) {
+      GetProductDetail(productId)
+        .then((response) => {
+          if (response?.data) {
+            setProduct(response.data)
+            if (response.data.variants?.length > 0) {
+              setSelectedVariant(response.data.variants[0].uuid)
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching product:', err)
+          setError('Produk tidak ditemukan')
+        })
     }
-    if (!selectedSize && product.sizes.length > 0) {
-      setSelectedSize(product.sizes[0])
-    }
-  }, [product, selectedColor, selectedSize])
+  }, [productId, GetProductDetail])
 
-  // Data produk diperluas untuk halaman detail
-  const productDetailData = {
-    ...product,
-    totalReviews: product.reviews,
-    sold: Math.floor(Math.random() * 2000) + 500, //jumlah terjual diacak
-    specifications: {
-      material: getProductMaterial(product.category),
-      care: "Hand wash dengan air dingin atau dry clean",
-      weight: "120-200 gram",
-      origin: "Indonesia"
-    },
-    features: getProductFeatures(product.category),
-    reviewList: generateReviews(product.reviews)
-  }
-
-  function getProductMaterial(category: string) {
-    const materials: { [key: string]: string } = {
-      "Segi Empat": "100% Silk Premium",
-      "Pashmina": "100% Kasmir",
-      "Bergo": "Jersey Premium",
-      "Voal": "Voal Premium",
-      "Syari": "Wolfis",
-      "Organza": "Organza Glitter"
-    }
-    return materials[category] || "Premium Material"
-  }
-
-  function getProductFeatures(category: string) {
-    const baseFeatures = [
-      "Bahan berkualitas tinggi dan lembut",
-      "Tidak mudah kusut dan tahan lama",
-      "Warna tidak mudah pudar",
-      "Tersedia berbagai pilihan warna",
-      "Cocok untuk segala usia"
-    ]
-
-    const categoryFeatures: { [key: string]: string[] } = {
-      "Segi Empat": [...baseFeatures, "Mudah diatur dan versatile", "Tekstur halus dan jatuh elegan"],
-      "Pashmina": [...baseFeatures, "Tekstur lembut dan hangat", "Cocok untuk cuaca dingin"],
-      "Bergo": [...baseFeatures, "Instant dan praktis", "Nyaman untuk aktivitas sehari-hari"],
-      "Voal": [...baseFeatures, "Ringan dan adem", "Cocok untuk cuaca tropis"],
-      "Syari": [...baseFeatures, "Menutup dengan sempurna", "Desain syari yang elegan"],
-      "Organza": [...baseFeatures, "Berkilau untuk acara formal", "Tekstur mewah dan elegan"]
-    }
-
-    return categoryFeatures[category] || baseFeatures
-  }
-
-  function generateReviews(reviewCount: number) {
-    const users = ["Siti Aminah", "Fatimah R.", "Maya Sari", "Aisyah K.", "Dewi S.", "Nurul H."]
-    const comments = [
-      "Hijabnya bagus banget! Bahannya halus dan jatuhnya elegan. Puas dengan pembelian ini.",
-      "Kualitas sesuai harga. Warnanya cantik dan tidak mudah kusut. Recommended!",
-      "Sudah order berkali-kali, selalu puas. Hijab favorit saya!",
-      "Bahannya lembut dan nyaman dipakai seharian. Worth it!",
-      "Pengiriman cepat, produk sesuai deskripsi. Terima kasih!",
-      "Warnanya cantik banget, sesuai dengan foto. Puas belanja di sini!"
-    ]
-
-    return Array.from({ length: Math.min(reviewCount, 6) }, (_, i) => ({
-      id: i + 1,
-      user: users[i % users.length],
-      rating: Math.floor(Math.random() * 2) + 4,
-      comment: comments[i % comments.length],
-      date: `${Math.floor(Math.random() * 30) + 1} hari lalu`,
-      helpful: Math.floor(Math.random() * 20) + 5,
-      images: Math.random() > 0.5 ? ["/user/modelhijab.jpg"] : []
-    }))
-  }
+  const currentVariant = product?.variants?.find((v: any) => v.uuid === selectedVariant) || product?.variants?.[0]
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -229,12 +68,70 @@ function ProductDetailPage() {
   }
 
   const handleImageNavigation = (direction: 'prev' | 'next') => {
+    const images = product?.images || []
     if (direction === 'prev') {
-      setSelectedImageIndex(prev => prev === 0 ? product.images.length - 1 : prev - 1)
+      setSelectedImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1)
     } else {
-      setSelectedImageIndex(prev => prev === product.images.length - 1 ? 0 : prev + 1)
+      setSelectedImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1)
     }
   }
+
+  const totalStock = product?.variants?.reduce((sum: number, v: any) => sum + (v.available || 0), 0) || 0
+
+  const generateReviews = (count: number) => {
+    const users = ["Siti Aminah", "Fatimah R.", "Maya Sari", "Aisyah K.", "Dewi S.", "Nurul H."]
+    const comments = [
+      "Hijabnya bagus banget! Bahannya halus dan jatuhnya elegan. Puas dengan pembelian ini.",
+      "Kualitas sesuai harga. Warnanya cantik dan tidak mudah kusut. Recommended!",
+      "Sudah order berkali-kali, selalu puas. Hijab favorit saya!",
+      "Bahannya lembut dan nyaman dipakai seharian. Worth it!",
+      "Pengiriman cepat, produk sesuai deskripsi. Terima kasih!",
+      "Warnanya cantik banget, sesuai dengan foto. Puas belanja di sini!"
+    ]
+
+    return Array.from({ length: Math.min(count, 6) }, (_, i) => ({
+      id: i + 1,
+      user: users[i % users.length],
+      rating: Math.floor(Math.random() * 2) + 4,
+      comment: comments[i % comments.length],
+      date: `${Math.floor(Math.random() * 30) + 1} hari lalu`,
+      helpful: Math.floor(Math.random() * 20) + 5,
+      images: Math.random() > 0.5 ? ["/user/modelhijab.jpg"] : []
+    }))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Memuat produk...</span>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+          <Package size={64} className="mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">Produk Tidak Ditemukan</h2>
+          <p className="text-muted-foreground mb-6">{error || 'Produk yang Anda cari tidak tersedia.'}</p>
+          <Link to="/catalog">
+            <Button>Kembali ke Katalog</Button>
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  const productImages = product.images?.map((img: any) => getImageUrl(img.url) || "/user/modelhijab.jpg") || ["/user/modelhijab.jpg"]
+  const reviewList = generateReviews(6)
 
   return (
     <div className="min-h-screen bg-background">
@@ -245,64 +142,97 @@ function ProductDetailPage() {
             Catalog
           </Link>
           <span>/</span>
-          <span className="text-foreground font-medium">{product.name}</span>
+          {product.product_type && (
+            <>
+              <Link
+                to="/catalog"
+                search={{ category: product.product_type }}
+                className="hover:text-primary transition-colors"
+              >
+                {product.product_type}
+              </Link>
+              <span>/</span>
+            </>
+          )}
+          <span className="text-foreground font-medium">{product.title}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           <div className="space-y-4">
-            {/* Gambar Utama */}
             <div className="relative aspect-[4/5] max-w-md mx-auto bg-muted rounded-lg overflow-hidden group">
               <img
-                src={product.images[selectedImageIndex]}
-                alt={product.name}
+                src={productImages[selectedImageIndex]}
+                alt={product.title}
                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
               />
 
-              {/* Navigasi Gambar */}
-              <button
-                onClick={() => handleImageNavigation('prev')}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                onClick={() => handleImageNavigation('next')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <ChevronRight size={20} />
-              </button>
+              {productImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => handleImageNavigation('prev')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => handleImageNavigation('next')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
 
-              {/* Penghitung Gambar */}
               <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded text-sm">
-                {selectedImageIndex + 1} / {product.images.length}
+                {selectedImageIndex + 1} / {productImages.length}
               </div>
             </div>
 
-            {/* Thumbnail Gambar */}
-            <div className="grid grid-cols-4 gap-3">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === index
+            {productImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-3">
+                {productImages.map((image: string, index: number) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === index
                       ? 'border-primary shadow-md'
                       : 'border-transparent hover:border-muted-foreground'
-                    }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+                      }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.title} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Informasi Produk */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
+              {product.tags && product.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {product.tags.map((tag: string, index: number) => (
+                    <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <h1 className="text-3xl font-bold text-foreground mb-2">{product.title}</h1>
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                {product.vendor && (
+                  <span>Vendor: <span className="text-foreground font-medium">{product.vendor}</span></span>
+                )}
+                {product.product_type && (
+                  <span>Kategori: <span className="text-foreground font-medium">{product.product_type}</span></span>
+                )}
+              </div>
+
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1">
                   <div className="flex items-center">
@@ -310,90 +240,80 @@ function ProductDetailPage() {
                       <Star
                         key={i}
                         size={16}
-                        className={`${i < Math.floor(product.rating)
-                            ? 'text-yellow-500 fill-current'
-                            : 'text-muted-foreground'
+                        className={`${i < 4
+                          ? 'text-yellow-500 fill-current'
+                          : 'text-muted-foreground'
                           }`}
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-medium">{product.rating}</span>
+                  <span className="text-sm font-medium">4.5</span>
                   <span className="text-sm text-muted-foreground">
-                    ({productDetailData.totalReviews} ulasan)
+                    ({reviewList.length} ulasan)
                   </span>
                 </div>
                 <div className="h-4 w-px bg-border"></div>
                 <span className="text-sm text-muted-foreground">
-                  {productDetailData.sold} terjual
+                  {Math.floor(Math.random() * 500) + 100} terjual
                 </span>
               </div>
             </div>
 
-            {/* Harga */}
             <div className="space-y-2">
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-bold text-primary">
-                  {formatPrice(product.price)}
+                  {formatPrice(currentVariant?.price || 0)}
                 </span>
-                <span className="text-lg text-muted-foreground line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">
-                  -{product.discount}%
-                </span>
+                {currentVariant?.cost && currentVariant.cost > 0 && currentVariant.cost !== currentVariant.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">
+                      {formatPrice(currentVariant.cost)}
+                    </span>
+                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">
+                      -{Math.round((1 - currentVariant.price / currentVariant.cost) * 100)}%
+                    </span>
+                  </>
+                )}
               </div>
               <div className="text-sm text-muted-foreground">
-                Stock: <span className="font-medium text-foreground">{product.stock} tersisa</span>
+                Status: <span className={`font-medium ${product.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                  {product.status === 'active' ? 'Tersedia' : 'Tidak Tersedia'}
+                </span>
               </div>
             </div>
 
-            {/* Pilihan Warna */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">
-                Pilih Warna: <span className="text-primary">{selectedColor}</span>
-              </h3>
-              <div className="flex flex-wrap gap-3">
-                {product.colors.map((color, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${selectedColor === color
+            {product.variants && product.variants.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">
+                  Pilih Varian: <span className="text-primary">{currentVariant?.title}</span>
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.variants.map((variant: any) => (
+                    <button
+                      key={variant.uuid}
+                      onClick={() => setSelectedVariant(variant.uuid)}
+                      disabled={variant.available === 0}
+                      className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${selectedVariant === variant.uuid
                         ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-muted hover:border-primary hover:bg-primary/5'
-                      }`}
-                    title={color}
-                  >
-                    {color}
-                  </button>
-                ))}
+                        : variant.available === 0
+                          ? 'border-muted bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'border-muted hover:border-primary hover:bg-primary/5'
+                        }`}
+                    >
+                      <div>{variant.title}</div>
+                      <div className="text-xs mt-1">
+                        {variant.available > 0 ? (
+                          <span className="text-muted-foreground">Stok: {variant.available}</span>
+                        ) : (
+                          <span className="text-red-500">Habis</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Pilihan Ukuran */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">
-                Pilih Ukuran: <span className="text-primary">{selectedSize}</span>
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {product.sizes.map((size, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedSize(size)}
-                    className={`p-3 rounded-lg border text-sm font-medium transition-all ${selectedSize === size
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-muted hover:border-primary hover:bg-primary/5'
-                      }`}
-                  >
-                    <div>{size}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Stock: {product.stock}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Kuantitas */}
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">Jumlah</h3>
               <div className="flex items-center gap-4">
@@ -408,23 +328,22 @@ function ProductDetailPage() {
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    onClick={() => setQuantity(Math.min(currentVariant?.available || totalStock, quantity + 1))}
                     className="p-2 hover:bg-muted transition-colors"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Max {product.stock} pcs
+                  Max {currentVariant?.available || totalStock} pcs
                 </div>
               </div>
             </div>
 
-            {/* Tombol Aksi */}
             <div className="flex gap-4 pt-6 border-t border-border">
               <Button
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-3 text-lg font-semibold"
-                disabled={product.stock === 0}
+                disabled={totalStock === 0 || product.status !== 'active'}
               >
                 <ShoppingCart size={20} className="mr-2" />
                 Tambah ke Keranjang
@@ -444,20 +363,19 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Tab Detail Produk */}
         <div className="border border-muted rounded-lg overflow-hidden">
           <div className="flex border-b border-muted">
             {[
               { id: 'description', label: 'Deskripsi' },
               { id: 'specifications', label: 'Spesifikasi' },
-              { id: 'reviews', label: `Ulasan (${productDetailData.totalReviews})` }
+              { id: 'reviews', label: `Ulasan (${reviewList.length})` }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-4 font-medium transition-colors ${activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground border-b-2 border-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  ? 'bg-primary text-primary-foreground border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
               >
                 {tab.label}
@@ -465,67 +383,71 @@ function ProductDetailPage() {
             ))}
           </div>
 
-          {/* Konten Tab */}
           <div className="p-6">
             {activeTab === 'description' && (
               <div className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  {product.description}
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {product.description || 'Tidak ada deskripsi untuk produk ini.'}
                 </p>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-3">Keunggulan Produk:</h4>
-                  <ul className="space-y-2">
-                    {productDetailData.features.map((feature: string, index: number) => (
-                      <li key={index} className="flex items-center gap-3 text-muted-foreground">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             )}
 
             {activeTab === 'specifications' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(productDetailData.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b border-muted">
-                    <span className="font-medium text-foreground capitalize">
-                      {key.replace(/([A-Z])/g, ' $1')}
-                    </span>
-                    <span className="text-muted-foreground">{value as string}</span>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="font-medium text-foreground">Kategori</span>
+                  <span className="text-muted-foreground">{product.product_type || '-'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="font-medium text-foreground">Vendor</span>
+                  <span className="text-muted-foreground">{product.vendor || '-'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="font-medium text-foreground">Status</span>
+                  <span className="text-muted-foreground">{product.status || '-'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="font-medium text-foreground">Total Varian</span>
+                  <span className="text-muted-foreground">{product.variants?.length || 0}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="font-medium text-foreground">Total Stok</span>
+                  <span className="text-muted-foreground">{totalStock}</span>
+                </div>
+                {currentVariant?.sku && (
+                  <div className="flex justify-between py-2 border-b border-muted">
+                    <span className="font-medium text-foreground">SKU</span>
+                    <span className="text-muted-foreground">{currentVariant.sku}</span>
                   </div>
-                ))}
+                )}
               </div>
             )}
 
             {activeTab === 'reviews' && (
               <div className="space-y-6">
-                {/* Ringkasan Rating */}
                 <div className="flex items-center gap-8 p-4 bg-muted/30 rounded-lg">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">{product.rating}</div>
+                    <div className="text-3xl font-bold text-primary">4.5</div>
                     <div className="flex items-center justify-center">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
                           size={16}
-                          className={`${i < Math.floor(product.rating)
-                              ? 'text-yellow-500 fill-current'
-                              : 'text-muted-foreground'
+                          className={`${i < 4
+                            ? 'text-yellow-500 fill-current'
+                            : 'text-muted-foreground'
                             }`}
                         />
                       ))}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      dari {productDetailData.totalReviews} ulasan
+                      dari {reviewList.length} ulasan
                     </div>
                   </div>
                 </div>
 
-                {/* Daftar Ulasan */}
                 <div className="space-y-6">
-                  {productDetailData.reviewList.map((review: any) => (
+                  {reviewList.map((review: any) => (
                     <div key={review.id} className="border-b border-muted pb-6 last:border-b-0">
                       <div className="flex items-start gap-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -540,8 +462,8 @@ function ProductDetailPage() {
                                   key={i}
                                   size={14}
                                   className={`${i < review.rating
-                                      ? 'text-yellow-500 fill-current'
-                                      : 'text-muted-foreground'
+                                    ? 'text-yellow-500 fill-current'
+                                    : 'text-muted-foreground'
                                     }`}
                                 />
                               ))}
@@ -583,6 +505,7 @@ function ProductDetailPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }
