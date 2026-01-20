@@ -94,7 +94,7 @@ function RouteComponent() {
               <Package className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-primary mb-1">Pesanan Saya</h1>
+              <h1 className="text-3xl font-bold text-primary mb-1">Riwayat Pemesanan</h1>
               <p className="text-muted-foreground">Lihat semua pesanan Anda</p>
             </div>
           </div>
