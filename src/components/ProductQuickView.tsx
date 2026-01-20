@@ -1,4 +1,4 @@
-import { X, Star, ShoppingCart, Heart, Plus, Minus } from 'lucide-react'
+import { X, Star, ShoppingCart, Heart, Plus, Minus, Tag, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { ProductResponse } from '@/features/product/types'
@@ -38,7 +38,7 @@ export function ProductQuickView({ product, isOpen, onClose }: ProductQuickViewP
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card border border-primary rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                 <div className="flex items-center justify-between p-6 border-b border-border sticky top-0 bg-card z-10">
-                    <h2 className="text-2xl font-bold text-primary">Quick View</h2>
+                    <h2 className="text-2xl font-bold text-primary">Quick View Product</h2>
                     <button
                         onClick={onClose}
                         className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
@@ -81,9 +81,36 @@ export function ProductQuickView({ product, isOpen, onClose }: ProductQuickViewP
                         </div>
 
                         <div>
-                            <div className="mb-4">
-                                <span className="text-sm text-muted-foreground">{product.product_type}</span>
-                                <h3 className="text-2xl font-bold text-foreground mt-1">{product.title}</h3>
+                            <div className="mb-6">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                        <Package size={14} />
+                                        <span>Kategori</span>
+                                        {product.product_type}
+                                    </span>
+                                    {product.vendor && (
+                                        
+                                        <span className="inline-flex items-center px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                                           Vendor {product.vendor}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-foreground mb-3 leading-tight">{product.title}</h3>
+
+                                {product.tags && product.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {product.tags.map((tag, index) => (
+                                            <span
+                                                key={index}
+                                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-primary/5 to-primary/10 text-primary border border-primary rounded-lg text-xs font-medium hover:from-primary/10 hover:to-primary/20 transition-all cursor-default"
+                                            >
+                                                <Tag size={12} />
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-2 mb-4">

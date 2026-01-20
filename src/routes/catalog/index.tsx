@@ -40,10 +40,6 @@ function RouteComponent() {
     return Math.min(...prices)
   }
 
-  const getTotalStock = (product: ProductResponse): number => {
-    return product.variants?.reduce((sum, v) => sum + (v.available || 0), 0) || 0
-  }
-
   const filterOptions = useMemo(() => {
     const productTypes = new Set<string>(['Semua'])
     const vendors = new Set<string>(['Semua'])
