@@ -316,6 +316,7 @@ function RouteComponent() {
           product={quickViewProduct}
           isOpen={!!quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
+          onAddToCart={handleAddToCart}
         />
       )}
 

@@ -8,9 +8,10 @@ interface ProductQuickViewProps {
     product: ProductResponse
     isOpen: boolean
     onClose: () => void
+    onAddToCart?: (product: ProductResponse) => void
 }
 
-export function ProductQuickView({ product, isOpen, onClose }: ProductQuickViewProps) {
+export function ProductQuickView({ product, isOpen, onClose, onAddToCart }: ProductQuickViewProps) {
     const [quantity, setQuantity] = useState(1)
     const [selectedImage, setSelectedImage] = useState(0)
 
@@ -30,7 +31,9 @@ export function ProductQuickView({ product, isOpen, onClose }: ProductQuickViewP
     const productImages = product.images?.map(img => getImageUrl(img.url) || "/user/modelhijab.jpg") || ["/user/modelhijab.jpg"]
 
     const handleAddToCart = () => {
-        console.log('Add to cart:', { product, quantity })
+        if (onAddToCart) {
+            onAddToCart(product)
+        }
         onClose()
     }
 
@@ -89,9 +92,9 @@ export function ProductQuickView({ product, isOpen, onClose }: ProductQuickViewP
                                         {product.product_type}
                                     </span>
                                     {product.vendor && (
-                                        
+
                                         <span className="inline-flex items-center px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-                                           Vendor {product.vendor}
+                                            Vendor {product.vendor}
                                         </span>
                                     )}
                                 </div>
