@@ -11,6 +11,9 @@ import { ProductCard } from '@/components/catalog/ProductCard'
 import { ProductQuickView } from '@/components/ProductQuickView'
 import { ProductGridSkeleton } from '@/components/SkeletonLoader'
 import { ProductResponse } from '@/features/product/types'
+import { AddToCartDialog } from '@/components/AddToCartDialog'
+import { toast } from 'sonner'
+import { checkAuth } from '../login/-server'
 
 export const Route = createFileRoute('/catalog/')({
   component: RouteComponent,
@@ -28,6 +31,32 @@ function RouteComponent() {
   const [showMobileFilter, setShowMobileFilter] = useState(false)
   const [wishlist, setWishlist] = useState<string[]>([])
   const [quickViewProduct, setQuickViewProduct] = useState<ProductResponse | null>(null)
+
+  // Add to cart state
+  const [addToCartProduct, setAddToCartProduct] = useState<ProductResponse | null>(null)
+  const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false)
+  const [token, setToken] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const auth = await checkAuth()
+      if (auth?.user?.token) {
+        setToken(auth.user.token)
+      }
+    }
+    fetchUser()
+  }, [])
+
+  const handleAddToCart = (product: ProductResponse) => {
+    if (!token) {
+      toast.error('Tidak Terautentikasi', {
+        description: 'Silakan login terlebih dahulu untuk menambahkan ke keranjang'
+      })
+      return
+    }
+    setAddToCartProduct(product)
+    setAddToCartDialogOpen(true)
+  }
 
   const { list: products, loading, GetListProduct } = useProductStore()
 
@@ -224,6 +253,7 @@ function RouteComponent() {
                     isInWishlist={wishlist.includes(product.uuid)}
                     onToggleWishlist={toggleWishlist}
                     onQuickView={setQuickViewProduct}
+                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>
@@ -286,6 +316,16 @@ function RouteComponent() {
           product={quickViewProduct}
           isOpen={!!quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
+        />
+      )}
+
+      {addToCartProduct && (
+        <AddToCartDialog
+          open={addToCartDialogOpen}
+          onOpenChange={setAddToCartDialogOpen}
+          variants={addToCartProduct.variants}
+          productName={addToCartProduct.title}
+          token={token}
         />
       )}
 

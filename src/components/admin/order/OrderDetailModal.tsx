@@ -167,9 +167,7 @@ const OrderDetailModal = ({ order, onClose }: OrderDetailModalProps) => {
             </div>
             <div className="space-y-3">
               {order.items.map((item) => {
-                const imageUrl = item.variant.images && item.variant.images.length > 0
-                  ? getImageUrl(item.variant.images[0].url) ?? '/user/modelhijab.jpg'
-                  : '/user/modelhijab.jpg'
+                const imageUrl = getImageUrl(item.variant?.images?.[0]?.url) || '/user/modelhijab.jpg'
 
                 return (
                   <div key={item.uuid} className="flex gap-4 items-center p-4 bg-muted/50 rounded-lg">
@@ -178,6 +176,9 @@ const OrderDetailModal = ({ order, onClose }: OrderDetailModalProps) => {
                         src={imageUrl}
                         alt={item.variant_title}
                         className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/user/modelhijab.jpg'
+                        }}
                       />
                     </div>
                     <div className="flex-1">

@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 import { checkAuth } from '@/routes/login/-server'
 import { useGetAdminOrders } from './order/-hooks'
 import { useProductStore } from '@/features/product/hooks'
+import { listCustomerFn } from '@/routes/admin/customer/-server'
 import OrderTable from '@/components/admin/order/OrderTable'
-import { Package, ShoppingBag, TrendingUp, AlertCircle } from 'lucide-react'
+import { Package, ShoppingBag, TrendingUp, AlertCircle, Users } from 'lucide-react'
 import { AdminOrderResponse } from '@/routes/admin/order/-types'
 import OrderDetailModal from '@/components/admin/order/OrderDetailModal'
 
@@ -18,6 +19,10 @@ function RouteComponent() {
   // States specific to order modal
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderResponse | null>(null)
 
+  // Customer states
+  const [totalCustomers, setTotalCustomers] = useState<number | null>(null)
+  const [isErrorCustomers, setIsErrorCustomers] = useState(false)
+
   const { data: ordersData, isLoading: isLoadingOrders, isError: isErrorOrders } = useGetAdminOrders(token, 1, 5)
 
   const { pagination: productPagination, GetPaginatedProducts } = useProductStore()
@@ -27,6 +32,13 @@ function RouteComponent() {
       const auth = await checkAuth()
       if (auth?.user?.token) {
         setToken(auth.user.token)
+        try {
+          const custRes = await listCustomerFn({ data: auth.user.token })
+          const custArray = Array.isArray(custRes?.data) ? custRes.data : (custRes?.data?.data || [])
+          setTotalCustomers(custArray.length)
+        } catch (err) {
+          setIsErrorCustomers(true)
+        }
       }
       // Fetch product stats
       GetPaginatedProducts('', 1, 1) // limit 1 since we only need pagination.total
@@ -43,7 +55,7 @@ function RouteComponent() {
         <p className="text-muted-foreground">Ringkasan aktivitas toko dan pesanan terbaru.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Total Products Card */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between space-y-0 pb-2">
@@ -67,6 +79,20 @@ function RouteComponent() {
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {isErrorOrders ? 'API pesanan belum tersedia' : 'Pesanan masuk sistem'}
+          </p>
+        </div>
+
+        {/* Total Customers Card */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Total Pelanggan</h3>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="text-2xl font-bold">
+            {isErrorCustomers ? 'N/A' : (totalCustomers !== null ? totalCustomers : '...')}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isErrorCustomers ? 'Gagal memuat pelanggan' : 'Pelanggan terdaftar'}
           </p>
         </div>
 

@@ -9,9 +9,10 @@ interface ProductCardProps {
     isInWishlist: boolean
     onToggleWishlist: (uuid: string) => void
     onQuickView?: (product: ProductResponse) => void
+    onAddToCart?: (product: ProductResponse) => void
 }
 
-export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickView }: ProductCardProps) {
+export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickView, onAddToCart }: ProductCardProps) {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -69,20 +70,35 @@ export function ProductCard({ product, isInWishlist, onToggleWishlist, onQuickVi
                                 Quick View
                             </Button>
                         )}
-                        <Link
-                            to="/catalog/$productId"
-                            params={{ productId: product.uuid }}
-                            onClick={() => localStorage.setItem('selectedProductId', product.uuid)}
-                        >
+                        {onAddToCart ? (
                             <Button
                                 size="sm"
                                 className="bg-primary hover:bg-primary/90"
                                 disabled={totalStock === 0}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    onAddToCart(product)
+                                }}
                             >
                                 <ShoppingCart className="w-4 h-4 mr-1" />
                                 {totalStock > 0 ? 'Beli' : 'Habis'}
                             </Button>
-                        </Link>
+                        ) : (
+                            <Link
+                                to="/catalog/$productId"
+                                params={{ productId: product.uuid }}
+                                onClick={() => localStorage.setItem('selectedProductId', product.uuid)}
+                            >
+                                <Button
+                                    size="sm"
+                                    className="bg-primary hover:bg-primary/90"
+                                    disabled={totalStock === 0}
+                                >
+                                    <ShoppingCart className="w-4 h-4 mr-1" />
+                                    {totalStock > 0 ? 'Beli' : 'Habis'}
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
