@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ interface AddToCartDialogProps {
   productName: string
   token?: string
   onSuccess?: () => void
+  initialQuantity?: number
 }
 
 export function AddToCartDialog({
@@ -31,11 +32,20 @@ export function AddToCartDialog({
   variants,
   productName,
   token,
-  onSuccess
+  onSuccess,
+  initialQuantity = 1
 }: AddToCartDialogProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string>('')
-  const [quantity, setQuantity] = useState<number>(1)
+  const [quantity, setQuantity] = useState<number>(initialQuantity)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setSelectedVariantId('')
+      setQuantity(initialQuantity)
+      setIsSubmitting(false)
+    }
+  }, [open, initialQuantity])
 
   const selectedVariant = variants.find(v => v.uuid === selectedVariantId)
 

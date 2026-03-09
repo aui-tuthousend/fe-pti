@@ -8,7 +8,7 @@ interface ProductQuickViewProps {
     product: ProductResponse
     isOpen: boolean
     onClose: () => void
-    onAddToCart?: (product: ProductResponse) => void
+    onAddToCart?: (product: ProductResponse, quantity: number) => void
 }
 
 export function ProductQuickView({ product, isOpen, onClose, onAddToCart }: ProductQuickViewProps) {
@@ -32,7 +32,7 @@ export function ProductQuickView({ product, isOpen, onClose, onAddToCart }: Prod
 
     const handleAddToCart = () => {
         if (onAddToCart) {
-            onAddToCart(product)
+            onAddToCart(product, quantity)
         }
         onClose()
     }

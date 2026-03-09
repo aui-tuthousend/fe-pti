@@ -35,6 +35,7 @@ function RouteComponent() {
   // Add to cart state
   const [addToCartProduct, setAddToCartProduct] = useState<ProductResponse | null>(null)
   const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false)
+  const [initialQuantity, setInitialQuantity] = useState<number>(1)
   const [token, setToken] = useState<string | undefined>(undefined)
 
   useEffect(() => {
@@ -47,7 +48,7 @@ function RouteComponent() {
     fetchUser()
   }, [])
 
-  const handleAddToCart = (product: ProductResponse) => {
+  const handleAddToCart = (product: ProductResponse, quantity?: number) => {
     if (!token) {
       toast.error('Tidak Terautentikasi', {
         description: 'Silakan login terlebih dahulu untuk menambahkan ke keranjang'
@@ -55,6 +56,7 @@ function RouteComponent() {
       return
     }
     setAddToCartProduct(product)
+    setInitialQuantity(quantity || 1)
     setAddToCartDialogOpen(true)
   }
 
@@ -327,6 +329,7 @@ function RouteComponent() {
           variants={addToCartProduct.variants}
           productName={addToCartProduct.title}
           token={token}
+          initialQuantity={initialQuantity}
         />
       )}
 
