@@ -5,7 +5,7 @@ import { useGetAdminOrders } from './order/-hooks'
 import { useProductStore } from '@/features/product/hooks'
 import { listCustomerFn } from '@/routes/admin/customer/-server'
 import OrderTable from '@/components/admin/order/OrderTable'
-import { Package, ShoppingBag, TrendingUp, AlertCircle, Users } from 'lucide-react'
+import { Package, ShoppingBag, TrendingUp, Users } from 'lucide-react'
 import { AdminOrderResponse } from '@/routes/admin/order/-types'
 import OrderDetailModal from '@/components/admin/order/OrderDetailModal'
 
@@ -68,17 +68,17 @@ function RouteComponent() {
           </p>
         </div>
 
-        {/* Total Orders Card - Might be 0 if endpoint doesn't exist */}
+        {/* Total Orders Card */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between space-y-0 pb-2">
             <h3 className="tracking-tight text-sm font-medium">Total Pesanan</h3>
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="text-2xl font-bold">
-            {isErrorOrders ? 'N/A' : (ordersData?.pagination?.total || 0)}
+            {isLoadingOrders ? '• • •' : (ordersData?.pagination?.total || 0)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {isErrorOrders ? 'API pesanan belum tersedia' : 'Pesanan masuk sistem'}
+            Pesanan masuk sistem
           </p>
         </div>
 
@@ -109,16 +109,6 @@ function RouteComponent() {
         </div>
       </div>
 
-      {isErrorOrders && (
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex gap-3 text-amber-800 dark:text-amber-200">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold text-sm">Pemberitahuan Sistem</p>
-            <p className="text-sm mt-1">Endpoint pesanan backend (<code>/api/admin/orders</code>) belum terimplementasi. Tabel pesanan di bawah tidak akan menampilkan data riil hingga endpoint tersebut tersedia.</p>
-          </div>
-        </div>
-      )}
-
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Pesanan Terbaru</h2>
@@ -126,12 +116,12 @@ function RouteComponent() {
 
         <OrderTable
           orders={orders}
-          loading={isLoadingOrders && !isErrorOrders}
+          loading={isLoadingOrders}
           pagination={{
             page: 1,
             limit: 5,
-            total: orders.length,
-            totalPages: 1
+            total: ordersData?.pagination.total || 0,
+            totalPages: Math.ceil((ordersData?.pagination.total || 0) / 5) || 1
           }}
           onViewDetails={setSelectedOrder}
           onPageChange={() => { }}
